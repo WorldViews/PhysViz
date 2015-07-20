@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>Playing with trees and mobiles</title>
+    <title>Variations on a barber pole</title>
     <style>
       body { margin: 0; }
       canvas { width: 100%; height: 100% }
@@ -115,22 +115,9 @@ function dist(p1,p2)
    return Math.sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-function randRotSpeed()
-{
-   return 10*(Math.random() - 0.5);
-}
-
-var leaves = [];
-var numLeafs = 0;
-//var imageUrl = 'http://www.html5canvastutorials.com/demos/assets/crate.jpg';
-var imageUrl = 'images/crate.jpg';
-
 function getLeaf(P)
 {
-   //var material = new THREE.MeshPhongMaterial( { color: 0x7733dd } );
-   //var material = new THREE.MeshPhongMaterial(
-   var material = new THREE.MeshLambertMaterial(
-      { color: 0xdddddd, map: THREE.ImageUtils.loadTexture(imageUrl) });
+   var material = new THREE.MeshPhongMaterial( { color: 0x7733dd } );
    var geometry = new THREE.BoxGeometry( P.leafW, P.leafH, P.leafD );
    var obj = new THREE.Mesh( geometry, material );
    var leaf = new THREE.Object3D();
@@ -138,10 +125,6 @@ function getLeaf(P)
    obj.position.y += 0.5*P.leafH + P.ballR;
    obj.position.x += 0.0*P.leafW;
    obj.position.z += 0.0*P.leafD;
-   numLeafs++;
-   leaf._w = randRotSpeed();
-   leaf.name = "L"+numLeafs;
-   leaves.push(leaf);
    return leaf;
 }
 
@@ -166,12 +149,7 @@ function getArm(P, p1, p2)
    return obj;
 }
 
-/*
-getTree is called with either an integer n, in which case either
-n branches to leaves are created, or with a list of children which
-are previously created trees.
-Note that getTree is not itself recursive.
-*/
+
 function getTree(P, args)
 {
     var r = 1;
@@ -200,7 +178,6 @@ function getTree(P, args)
     root.position.z = 0;
     obj.add(root)
     var child;
-    var nodes = [];
     for (var i=0; i<n; i++) {
        if (children)
            child = children[i];
@@ -211,7 +188,6 @@ function getTree(P, args)
        child.position.x = r*Math.cos(theta);
        child.position.z = r*Math.sin(theta);
        obj.add( child );
-       nodes.push(child);
        var lgeom = new THREE.Geometry();
        lgeom.vertices.push(root.position);
        lgeom.vertices.push(child.position);
@@ -220,7 +196,6 @@ function getTree(P, args)
        var arm = getArm(P, root.position, child.position);
        obj.add(arm);
     }
-    obj._branches = nodes;
     //obj.r = 2*r;
     obj.r = 1.4*r;
     return obj;
@@ -231,10 +206,6 @@ function reset()
    getVals();
 }
 
-/*
-buildTree is a recursive routine which takes arg that may be
-a nested list of specs, for building a tree.
-*/
 function buildTree(P, arg, path)
 {
     if (!path)
@@ -255,6 +226,7 @@ function buildTree(P, arg, path)
            nodes.push(buildTree(P, children[i], path+"/"+i));
        }
        var tree = getTree(P, {children: nodes});
+       tree._branches = nodes;
        tree.name = path;
        return tree;
     }
@@ -316,19 +288,15 @@ function setupWorld()
       P.speeds = {};
       var cube = null;
 
-/*
       c1 = getTree(P, {n: 3})
       c2 = getTree(P, {n: 4})
       c3 = getTree(P, {children: [c1,c2]});
       c4 = getTree(P, {n: 2})
       c5 = getTree(P, {n: 5})
-*/
       //P.root = getTree(P, {children: [c3, c4,c5]})
       //P.root = buildTree(P, [[3, 4], 2, 5])
       //P.root = buildTree(P, [2, 3, 2, 2])
       P.root = buildTree(P, [[3, 4], [2, [3,3]], 5])
-      //P.root = buildTree(P, [[[2]]])
-      //P.root = buildTree(P, [2])
       if (P.isMobile)
           P.root.rotation.x = Math.PI;
       scene.add(P.root)
@@ -366,10 +334,8 @@ function setupWorld()
       camera.position.z = 5;
       var steps = 0;
 
-      dumpTree(P, P.root);
-
       var render = function () {
-          //report("------------------------------\nrender n: "+steps);
+          //report("render n: "+steps);
 	  requestAnimationFrame( render );
           steps += 1;
           adjust = 1;
@@ -386,23 +352,23 @@ function setupWorld()
       render();
 }
 
-function dumpTree(P, v, indent)
+
+function pointAt(P, v, target)
 {
-   if (!indent)
-      indent = ".";
-   report(indent+v.name);
-   if (v._branches) {
-       for (var i=0; i<v._branches.length; i++) {
-           dumpTree(P, v._branches[i], indent+"..");
-       }
-   }
+   //v.lookAt(P.camera.position);
+   //v.quaternion.copy(P.camera.quaternion);
+   var parent = v.parent;
+   //report("parent: "+ parent);
+   THREE.SceneUtils.detach(v, parent, P.scene);
+   v.lookAt(target);
+   v.updateMatrix();
+   THREE.SceneUtils.attach(v, P.scene, parent);
 }
 
 function adjustChildren(P, v)
 {
     rotateChildren(P, v, 0);
     //pointChildren(P, v, 0);
-    //pointLeaves();
 }
 
 function rotateChildren(P, v, depth)
@@ -417,25 +383,8 @@ function rotateChildren(P, v, depth)
        }
    }
    else {
-       var w = 2*depth*depth*depth+1
-       if (v._w) {
-          w = v._w*2*depth*depth;
-          //report("have _w "+w);
-       }
-       v.rotation.y += P.hv0*w;
+      // v.rotation.y += P.hv0*(2*depth*depth+1);
    }
-}
-
-function pointAt(P, v, target)
-{
-   //v.lookAt(P.camera.position);
-   //v.quaternion.copy(P.camera.quaternion);
-   var parent = v.parent;
-   //report("parent: "+ parent);
-   THREE.SceneUtils.detach(v, parent, P.scene);
-   v.lookAt(target);
-   v.updateMatrix();
-   THREE.SceneUtils.attach(v, P.scene, parent);
 }
 
 function pointChildren(P, v, depth)
@@ -452,15 +401,6 @@ function pointChildren(P, v, depth)
       pointAt(P, v, target);
    }
 }
-
-function pointLeaves()
-{
-   var target = P.camera.position;
-   for (var i=0; i<leaves.length; i++) {
-       pointAt(P, leaves[i], target);
-   }
-}
-
 
 setupWorld();
 
