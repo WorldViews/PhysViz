@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"> 
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+</head>
+<body>
+  <div class="main">
+    <h2>Device Motion</h2>
+    <table>
+        <td>orientation</td><td id="orientation"></td>
+    </table>
+    <p>
+    <button onclick="onClickX();">Hello</button>
+  </div>
+  <script src="GetWebSock.js"></script>
+  <script type="text/javascript">
+  
+    function onClickX(e) {
+        report("click");
+        WS.sendMessage({'msgType':'text', 'text': 'hello'});
+    }
+
+    WS = GetWebSock();
+    init();
+
+    function init() {
+      if ((window.DeviceMotionEvent) || ('listenForDeviceMovement' in window)) {
+        window.addEventListener('deviceorientation', deviceOrientationHander, false);
+      } else {
+        document.getElementById("dmEvent").innerHTML = "Not supported on your device or browser.  Sorry."
+      }
+    }
+
+    function deviceOrientationHander(event) {
+       var alpha = event.alpha;
+       var beta = event.beta;
+       var gamma = event.gamma;
+       var info = "" + round(alpha)+" "+round(beta)+" "+round(gamma);   
+       document.getElementById("orientation").innerHTML = info;
+       msg = {'msgType': 'orientation',
+              'yaw': alpha,
+              'pitch': beta,
+              'roll': gamma}
+       WS.sendMessage(msg);
+    }
+
+    function round(val) {
+      var amt = 10;
+      return Math.round(val * amt) /  amt;
+    }
+
+  </script>
+  
+</body>
+</html>
