@@ -41,6 +41,11 @@
    &nbsp;
    <input id="reset" type="button" value="reset">
    <div id="params" hidden>
+     <button onclick='loadInstrument("violin")'>Violin</button>
+     <button onclick='loadInstrument("choir_aahs")'>Choir</button>
+     <button onclick='loadInstrument("acoustic_grand_piano")'>Piano</button>
+     <button onclick='loadInstrument("harpsichord")'>Harpsichord</button>
+     <button onclick='loadInstrument("voice_oohs")'>Voice</button>
    </div>
 </div>
 
@@ -173,7 +178,7 @@ function setupWorld()
 
       P = {};
       P.helixR = 0.4;
-      P.ncubes = 24;
+      P.ncubes = 88;
       P.cubeW = .2;
       P.cubeL = 0.7;
       P.gap = .4;
@@ -189,24 +194,6 @@ function setupWorld()
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera( 75,
                              window.innerWidth/window.innerHeight, 0.1, 1000 );
-
-      trackball = 1;
-      if (trackball) {
-          //controls = new THREE.TrackballControls( camera );
-          controls = new THREE.TrackballControls( camera, container );
-          controls.rotateSpeed = 2.0;
-          controls.zoomSpeed = 1.2;
-          controls.panSpeed = 0.8;
-
-          controls.noZoom = false;
-          controls.noPan = false;
-
-          controls.staticMoving = true;
-          controls.dynamicDampingFactor = 0.3;
-
-          controls.keys = [ 65, 83, 68 ];
-          controls.addEventListener( 'change', render );
-      }
 
       renderer = new THREE.WebGLRenderer();
       renderer.setSize( window.innerWidth, window.innerHeight );
@@ -272,7 +259,7 @@ function setupWorld()
                   ax1 = ax1 % (2*Math.PI);
                   var clicked = 0;
 		  if (ax0-ax1 > Math.PI) {
-	              report("step "+steps+" v "+i);
+	              //report("step "+steps+" v "+i);
                       P.cubes[i].clicked = 10;
 	              if (audioOn) {
 			 MIDI.noteOn(  0, i+21, 100);
@@ -297,19 +284,59 @@ function setupWorld()
               }
          }
          renderer.render(scene, camera);
-				    
          if (controls) {
             controls.update();
          }
-      };
+      }
       setupGUI();
+
+      trackball = 1;
+      if (trackball) {
+          controls = new THREE.TrackballControls( camera, container );
+          controls.rotateSpeed = 2.0;
+          controls.zoomSpeed = 1.2;
+          controls.panSpeed = 0.8;
+
+          controls.noZoom = false;
+          controls.noPan = false;
+
+          controls.staticMoving = true;
+          controls.dynamicDampingFactor = 0.3;
+
+          controls.keys = [ 65, 83, 68 ];
+          //controls.addEventListener( 'change', render );
+      };
+
       render();
 }
 
+function loadInstrument(instr, successFn)
+{
+    instrument = instr;
+    MIDI.loadPlugin({
+        soundfontUrl: "./soundfont/",
+	instrument: instrument,
+        onprogress:function(state,progress){
+           MIDI.loader.setValue(progress*100);
+        },
+        onprogress: function(state,progress)
+		{
+                      MIDI.loader.setValue(progress*100);
+		},
+	onsuccess: function()
+		{
+		    MIDI.programChange(0, instr);
+		    if (successFn)
+			successFn();
+		}
+    });
+}
 
 window.onload=function(){
     report("***** setting up midi ******");
     MIDI.loader=new sketch.ui.Timer;
+    loadInstrument("acoustic_grand_piano");
+    /*
     MIDI.loadPlugin({
         soundfontUrl: "./soundfont/",
         instrument:"acoustic_grand_piano",
@@ -320,6 +347,7 @@ window.onload=function(){
             report("**** midi plugin ready ****");
         }
     });
+    */
 }
 
 setupWorld();

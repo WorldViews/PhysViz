@@ -46,7 +46,7 @@ function clearCanvas()
    dc.stroke();
 }
 
-RefreshFrame=function(){
+refreshFrame=function(){
    clearCanvas();
    var ms=(new Date()).getTime();
    var timer;
@@ -86,29 +86,43 @@ RefreshFrame=function(){
    }
 };
 
-window.onload=function(){
-    MIDI.loader=new sketch.ui.Timer;
+function loadInstrument(instr, successFn)
+{
+    instrument = instr;
     MIDI.loadPlugin({
         soundfontUrl: "./soundfont/",
-        instrument:"acoustic_grand_piano",
+	instrument: instrument,
         onprogress:function(state,progress){
            MIDI.loader.setValue(progress*100);
         },
-        onsuccess:function(){
-           var canvas=document.getElementById('mycanvas');
-           canvas.style.width=gw+"px";
-           canvas.style.height=gh+"px";
-           canvas.width=gw;
-           canvas.height=gh;
-           dc=canvas.getContext('2d');
-           for(var i=0;i<nbrPoints;++i){
-               if(i%7===0) MIDI.noteOn(0,i+21,100,0);
-               lastSound[i]=0;
-               tines[i]=0;
-           }
-           startTime=(new Date()).getTime();
-           setInterval(RefreshFrame,1000/30);
-        }
+        onprogress: function(state,progress)
+		{
+                      MIDI.loader.setValue(progress*100);
+		},
+	onsuccess: function()
+		{
+		    MIDI.programChange(0, instr);
+		    if (successFn)
+			successFn();
+		}
     });
 }
+
+function initFrame()
+{
+    var canvas=document.getElementById('mycanvas');
+    canvas.style.width=gw+"px";
+    canvas.style.height=gh+"px";
+    canvas.width=gw;
+    canvas.height=gh;
+    dc=canvas.getContext('2d');
+    for(var i=0;i<nbrPoints;++i){
+	if(i%7===0) MIDI.noteOn(0,i+21,100,0);
+	lastSound[i]=0;
+	tines[i]=0;
+    }
+    startTime=(new Date()).getTime();
+    setInterval(refreshFrame,1000/30);
+}
+
 
