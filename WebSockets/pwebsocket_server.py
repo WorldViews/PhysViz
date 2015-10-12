@@ -93,6 +93,7 @@ class WebsocketServer(ThreadingMixIn, TCPServer, API):
 	id_counter=0
 
 	def __init__(self, port, host='127.0.0.1'):
+		print "host:", host
 		print "port:", port
 		self.port=port
 		TCPServer.__init__(self, (host, port), WebSocketHandler)

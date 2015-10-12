@@ -31,9 +31,13 @@
   <script src="GetWebSock.js"></script>
   <script type="text/javascript">
   
-    WS = GetWebSock();
+    WS = GetWebSock({'onopen': onJoin});
     init();
 
+    function onJoin() {
+        report("connected to server");
+        WS.sendMessage({'msgType':'introduction', 'name': 'anon', 'appType': 'sensors'});
+    }
     
     function init() {
       if ((window.DeviceMotionEvent) || ('listenForDeviceMovement' in window)) {
@@ -50,6 +54,12 @@
        var gamma = event.gamma;
        var info = "" + round(alpha)+" "+round(beta)+" "+round(gamma);   
        document.getElementById("orientation").innerHTML = info;
+       var msg = {
+          'msgType': 'orientation',
+          'yaw': alpha,
+          'pitch': beta,
+          'roll': gamma}
+       WS.sendMessage(msg);
     }
 
     function deviceMotionHandler(eventData) {
@@ -78,6 +88,12 @@
 
       info = eventData.interval;
       document.getElementById("moInterval").innerHTML = info;
+      var msg = {
+          'msgType': 'motion',
+          'rotationRate': [rotation.alpha, rotation.beta, rotation.gamma],
+          'acceleration': [acceleration.x, acceleration.y, acceleration.z],
+       };
+       WS.sendMessage(msg);
     }
 
     function round(val) {

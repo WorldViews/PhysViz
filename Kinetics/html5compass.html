@@ -2,14 +2,12 @@
 <html lang="en"> 
 <head>
   <meta charset="UTF-8">
-  <title></title>
+  <title>Motion Watcher</title>
 </head>
 <body>
   <div class="main">
-    <h2>Device Motion</h2>
-    <table>
-        <td>orientation</td><td id="orientation"></td>
-    </table>
+    <h2>Motion Watcher</h2>
+    <span id="status"></span>
     <p>
     <button onclick="onClickX();">Hello</button>
   </div>
@@ -21,7 +19,12 @@
         WS.sendMessage({'msgType':'text', 'text': 'hello'});
     }
 
-    WS = GetWebSock();
+    function onJoin() {
+        report("connected to server");
+        WS.sendMessage({'msgType':'introduction', 'name': 'anon', 'appType': 'compass'});
+    }
+
+    WS = GetWebSock({'onopen': onJoin});
     init();
 
     function init() {
@@ -33,11 +36,18 @@
     }
 
     function deviceOrientationHander(event) {
+       if (event.alpha == null) {
+           errMsg = "Cannot get sensor information";
+           document.getElementById("status").innerHTML = errMsg;
+           return;
+       }
        var alpha = event.alpha;
        var beta = event.beta;
        var gamma = event.gamma;
-       var info = "" + round(alpha)+" "+round(beta)+" "+round(gamma);   
-       document.getElementById("orientation").innerHTML = info;
+       var info = "" + round(alpha)+" "+round(beta)+" "+round(gamma);
+       report("alpha: "+alpha+"  beta: "+beta+"  gamma: "+gamma);
+       report("info: "+info);
+       document.getElementById("status").innerHTML = info;
        msg = {'msgType': 'orientation',
               'yaw': alpha,
               'pitch': beta,

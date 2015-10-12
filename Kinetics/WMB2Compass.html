@@ -90,6 +90,7 @@ var angle = 0;
 var prev_a = null;
 
 WS = GetWebSock({'orientation': handleOrientation } );
+//WS = GetWebSock({'motion': handleMotion } );
 
 function handleOrientation(msg) {
    report("msg: "+JSON.stringify(msg));
@@ -106,6 +107,18 @@ function handleOrientation(msg) {
       if (da < -180)
          da += 360;
    }
+   angle += da;
+   report("angle: "+angle);
+   CRANK_ANGLE = angle;
+   showHeading(angle);
+}
+
+function handleMotion(msg) {
+   report("msg: "+JSON.stringify(msg));
+   var rrate = msg.rotationRate;
+   var idx = 1;
+   var omega = rrate[idx];
+   var da = 360*omega/(2*Math.PI);
    angle += da;
    report("angle: "+angle);
    CRANK_ANGLE = angle;

@@ -1,9 +1,25 @@
 /*
-<script src="http://127.0.0.1:8081/socket.io/socket.io.js"></script>
-<script src="JointWatcher.js"></script>
+To use this, do one of
+
+var ws = GetWebSock();
+var ws = GetWebSock(handlers);
+var ws = GetWebSock(handlers, url);
+
+where handlers is a dictionary of functions that get called
+by type, where type is either 'onopen' which gets called
+when the socket had connected to server, or where type
+matches the 'msgType' field of an incoming JSON msg.
+
+After the ws has been connected, messages may be sent
+by
+
+ws.sendMessage(msg)
+
+where msg is a JSON dictionary.
 */
 
 WS = {};
+WS.defaultPort = 8100;
 WS.ws = null;
 WS.numMsgs = 0;
 
@@ -27,8 +43,13 @@ var numMsgs = 0;
 function GetWebsocket(handlers, url)
 {
    if (!url) {
-       	url = "ws://platonia:8100/";
-       	url = "ws://192.168.21.153:8100/";
+       domain = document.domain;
+       if (!domain) {
+	   domain = "platonia";
+	   domain = "192.168.21.153";
+	   console.log("Cannot get domain - using "+domain);
+       }
+       url = "ws://"+domain+":"+WS.defaultPort+"/";
    }
    //url = "ws://localhost:8100/";
    console.log("GetWebsocket "+url);
@@ -38,6 +59,8 @@ function GetWebsocket(handlers, url)
    WS.ws.onopen = function(){
       /*Send a small message to the console once the connection is established */
       report('Ws open!');
+      if (handlers.onopen)
+	  handlers.onopen();
    };
 
    WS.ws.onclose = function(){
@@ -63,7 +86,6 @@ function GetWebsocket(handlers, url)
 	   report("ignoring non-JSON message");
 	   return;
        }
-      //var msg = smsg.data;
       var msg = smsg;
       WS.numMsgs += 1;
       //report("got msg "+WS.numMsgs);
@@ -78,6 +100,10 @@ function GetWebsocket(handlers, url)
    };
 
    WS.sendMessage = function(msg) {
+       if (WS.ws == null || WS.ws.readyState != WS.ws.OPEN) {
+	   report("socket not open");
+	   return;
+       }
        report("sendingMessage: "+JSON.stringify(msg));
        WS.ws.send(JSON.stringify(msg));
    };

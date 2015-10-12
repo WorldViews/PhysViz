@@ -13,10 +13,24 @@
 <script src="js/Detector.js"></script>
 <script src="js/libs/stats.min.js"></script>
 
-<script src="timbre.js"></script>
-<script src="timbre/misc/MoogFF.js"></script>
-<script src="timbre/misc/subcollider.js"></script>
-<script src="gymnopedie.js"></script>
+	<!-- shims -->
+	<script src="./wmb/Base64.js"></script>
+	<script src="./wmb/Base64binary.js"></script>
+	<script src="./wmb/WebAudioAPI.js"></script>
+	<!-- midi.js package -->
+	<script src="./wmb/audioDetect.js"></script>
+	<script src="./wmb/gm.js"></script>
+	<script src="./wmb/loader.js"></script>
+	<script src="./wmb/plugin.audiotag.js"></script>
+	<script src="./wmb/plugin.webaudio.js"></script>
+	<script src="./wmb/plugin.webmidi.js"></script>
+	<script src="./wmb/player.js"></script>
+	<!-- utils -->
+	<script src="./wmb/dom_request_xhr.js"></script>
+	<script src="./wmb/dom_request_script.js"></script>
+	<!-- includes -->
+	<script src="./wmb/timer.js"></script>
+	<!-- font -->
 
 <div id="controls">
    Colors: <input id="colors" type="checkbox">
@@ -72,12 +86,14 @@ function setFun(id)
     });
 }
 
+audioOn = false;
+
 function toggleAudio()
 {
     if ($("#audio").prop("checked"))
-        startMusic();
+        audioOn = true;
     else
-       stopMusic();			     
+        audioOn = false;
 }
 
 function toggleParams()
@@ -258,6 +274,10 @@ function setupWorld()
 		  if (ax0-ax1 > Math.PI) {
 	              report("step "+steps+" v "+i);
                       P.cubes[i].clicked = 10;
+	              if (audioOn) {
+			 MIDI.noteOn(  0, i+21, 100);
+			 MIDI.noteOff( 0, i+21,  .1);
+                      }
                   }
                   else {
                       if (P.cubes[i].clicked)
@@ -286,9 +306,24 @@ function setupWorld()
       render();
 }
 
+
+window.onload=function(){
+    report("***** setting up midi ******");
+    MIDI.loader=new sketch.ui.Timer;
+    MIDI.loadPlugin({
+        soundfontUrl: "./soundfont/",
+        instrument:"acoustic_grand_piano",
+        onprogress:function(state,progress){
+           MIDI.loader.setValue(progress*100);
+        },
+        onsuccess:function(){
+            report("**** midi plugin ready ****");
+        }
+    });
+}
+
 setupWorld();
 
-
-    </script>
-  </body>
+</script>
+</body>
 </html>

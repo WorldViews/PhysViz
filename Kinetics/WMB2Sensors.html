@@ -22,6 +22,16 @@
 	<!-- includes -->
 	<script src="./wmb/timer.js"></script>
 	<!-- font -->
+
+
+<script src="GetWebSock.js"></script>
+<script>
+    function onClickX(e) {
+        report("click");
+        WS.sendMessage({'msgType':'text', 'text': 'hello'})
+    }
+</script>
+
 	<style>
 body {
    background:#000;
@@ -59,12 +69,91 @@ a {
 Whitney Music Box animation in HTML5.<br>
 Graphics code by <a href="https://github.com/jbum/Whitney-Music-Box-Examples">Jim Bumgardner</a>.<br>
 Audio created with <a href="https://github.com/mudcube/MIDI.js">MIDI.js</a><br>
+<canvas id="canvas1" width="200" height="200"></canvas>
 <canvas id="mycanvas" width="800" height="800" style="width: 800px; height: 800px;">
 <script src="wmb.js"></script>
 <script src="sf_acoustic_grand_piano.js"></script>
 </canvas>
-<div class="sk-timer" style="display: none; opacity: 0; transition: opacity 0.35s;">
+<div class="xsk-timer" style="display: none; opacity: 0; transition: opacity 0.35s;">
   <canvas width="120" height="120"></canvas>
 </div>
+
+<table>
+    <td>orientation</td><td id="orientation"></td>
+</table>
+<p>
+<button onclick="onClickX();">hello</button>
+
+<script type="text/javascript">
+
+var angle = 0;
+var prev_a = null;
+var prev_motion_t = null;
+
+//WS = GetWebSock({'orientation': handleOrientation } );
+WS = GetWebSock({'motion': handleMotion } );
+
+function handleOrientation(msg) {
+   report("msg: "+JSON.stringify(msg));
+   var a = msg.yaw;
+   var da = 0;
+   if (prev_a == null) {
+      prev_a = a;
+   }
+   else {
+      da = a - prev_a;
+      prev_a = a;
+      if (da > 180)
+         da -= 360;
+      if (da < -180)
+         da += 360;
+   }
+   angle += da;
+   report("angle: "+angle);
+   CRANK_ANGLE = angle;
+   showHeading(angle);
+}
+
+
+function handleMotion(msg) {
+   report("msg: "+JSON.stringify(msg));
+   var rrate = msg.rotationRate;
+   var idx = 1;
+   var omega = rrate[idx];
+   prev_motion_t = null;
+   //var da = 360*omega/(2*Math.PI);
+   var da = omega;
+   angle += da;
+   report("angle: "+angle);
+   CRANK_ANGLE = angle;
+   showHeading(angle);
+}
+
+function showHeading(h)
+{
+   var canvas=document.getElementById("canvas1");
+   var dc=canvas.getContext("2d");
+   
+   var cw = 200;
+   var ch = 200;
+   var cx = cw/2;
+   var cy = ch/2;
+   var r= .8*(cw/2);
+   var rb = 8;
+   var PI2 = 2*Math.PI;
+   dc.clearRect(0,0,cw,ch);
+   dc.fillStyle='white';
+   var a = PI2*h/360;
+   var x = cx + r*Math.cos(a);
+   var y = cy + r*Math.sin(a);
+   dc.beginPath();
+   dc.arc(x,y,rb,0,PI2,false);
+   dc.fill();
+}
+
+showHeading(0);
+
+</script>
+  
 </body>
 </html>

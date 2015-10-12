@@ -1,13 +1,18 @@
 '''
 '''
+import socket
 import json
 import threading
 
 
 USE_SSL = False
-
-HOST = "platonia"
-PORT=8100
+HOSTNAME = socket.gethostname()
+HOST = "127.0.0.1"
+PORT = 8100
+try:
+    HOST = socket.gethostbyname(HOSTNAME)
+except:
+    print "Cannot get hostname"
 
 SERVER = None
 
@@ -29,7 +34,7 @@ class WSServer(WebsocketServer):
 # Called for every client connecting (after handshake)
 def new_client(client, server):
 	print("New client connected and was given id %d" % client['id'])
-	server.send_message_to_all("Hey all, a new client has joined us")
+	#server.send_message_to_all("Hey all, a new client has joined us")
 
 
 # Called for every client disconnecting
