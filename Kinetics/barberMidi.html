@@ -334,17 +334,21 @@ function loadInstrument(instr, successFn)
 
 window.onload=function(){
     report("***** setting up midi ******");
+    var instrument;
+    instrument = "acoustic_grand_piano";
+    //instrument = "choir_aahs";
     MIDI.loader=new sketch.ui.Timer;
     loadInstrument("acoustic_grand_piano");
     /*
     MIDI.loadPlugin({
         soundfontUrl: "./soundfont/",
-        instrument:"acoustic_grand_piano",
+        instrument: instrument,
         onprogress:function(state,progress){
            MIDI.loader.setValue(progress*100);
         },
         onsuccess:function(){
             report("**** midi plugin ready ****");
+	    MIDI.Soundfont.acoustic_grand_piano = MIDI.Soundfont.choir_aahs;
         }
     });
     */

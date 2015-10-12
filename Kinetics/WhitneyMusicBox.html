@@ -64,8 +64,8 @@ Audio created with <a href="https://github.com/mudcube/MIDI.js">MIDI.js</a><br>
 var dc;
 //var nbrPoints=48;
 var nbrPoints=96;
-//var cycleLength=60*3;
-var cycleLength=60*1;
+var cycleLength=60*3;
+//var cycleLength=60*1;
 var gw=800;
 var gh=800;
 var cx=gw/2;
@@ -111,7 +111,7 @@ RefreshFrame=function(){
       dc.beginPath();
       dc.arc(x,y,radv,0,PI2,false);
       dc.fill();
-      if (1) {
+      if (0) {
          dc.beginPath();
          dc.arc(cx,cy,len, a-.3, a, false);
          dc.fill();
