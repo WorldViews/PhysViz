@@ -28,10 +28,55 @@ setupWorld();
 <script src="GetWebSock.js"></script>
 <script>
 //WS = GetWebSock({'orientation': handleOrientation } );
-WS = GetWebSock({'motion': handleMotion } );
+WS = GetWebSock({'motion': handleMotion,
+                 'joint': handleJoint,
+                 'kinect.skeleton.pose': handleKinSkelPose} );
 
 var prev_a = null;
 var angle = 0;
+var a0 = 0;
+var pa0 = 0;
+var tracking_on = false;
+
+function handleJoint(msg)
+{
+}
+
+function handleKinSkelPose(msg)
+{
+    //report("pose: "+JSON.stringify(msg));
+    rhand = msg.RIGHT_HAND;
+    head = msg.HEAD;
+    if (!rhand || !head) {
+        tracking_on = false;
+        return;
+    }
+    var x0 = head[0];
+    var z0 = head[1];
+    var y0 = head[2];
+    var x1 = rhand[0];
+    var z1 = rhand[1];
+    var y1 = rhand[2];
+    var dx = x1-x0;
+    var dy = y1-y0;
+    var dz = z1-z0;
+    if (dz < 0) {
+        tracking_on = false;
+        return;
+    }
+    var a = Math.atan2(dx,dy);
+    if (!tracking_on) {
+        tracking_on = true;
+        report("tracking_on "+tracking_on);
+        pa0 = P.root.rotation.y * 180.0 / Math.PI;
+        pa0 = pa0 % (2*Math.PI);
+        a0 = a;
+    }
+    a = pa0 + a - a0;
+    var degs = 180*a/Math.PI;
+    report("dz: "+dz +"  degs: "+degs);
+    setHeading(degs);
+}
 
 function setHeading(angle)
 {

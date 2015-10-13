@@ -7,10 +7,11 @@ import threading
 
 USE_SSL = False
 HOSTNAME = socket.gethostname()
-HOST = "127.0.0.1"
+#HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 PORT = 8100
 try:
-    HOST = socket.gethostbyname(HOSTNAME)
+    HOSTNAME = socket.gethostbyname(HOSTNAME)
 except:
     print "Cannot get hostname"
 
