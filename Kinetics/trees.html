@@ -37,6 +37,9 @@ var angle = 0;
 var a0 = 0;
 var pa0 = 0;
 var tracking_on = false;
+var gain = 2.5;
+var ogain = 1;
+//var ogain = -Math.PI/180;
 
 function handleJoint(msg)
 {
@@ -45,6 +48,7 @@ function handleJoint(msg)
 function handleKinSkelPose(msg)
 {
     //report("pose: "+JSON.stringify(msg));
+    //report("pa0: "+P.root.rotation.y * 180.0 / Math.PI);
     rhand = msg.RIGHT_HAND;
     head = msg.HEAD;
     if (!rhand || !head) {
@@ -61,27 +65,34 @@ function handleKinSkelPose(msg)
     var dy = y1-y0;
     var dz = z1-z0;
     if (dz < 0) {
+	if (tracking_on) {
+	    report("<<<< tracking_on "+false);
+        }
         tracking_on = false;
         return;
     }
-    var a = Math.atan2(dx,dy);
+    var a = - Math.atan2(dx,dy);
     if (!tracking_on) {
         tracking_on = true;
-        report("tracking_on "+tracking_on);
-        pa0 = P.root.rotation.y * 180.0 / Math.PI;
+        report(">>>> tracking_on "+tracking_on+" dx: "+dx+"   dy: "+dy);
+        pa0 = P.root.rotation.y;
+        report("pa0: "+pa0);
         pa0 = pa0 % (2*Math.PI);
         a0 = a;
+        report("a0: "+a0+"   pa0: "+pa0);
     }
-    a = pa0 + a - a0;
+    var da = a - a0;
+    //report("da: "+da);
+    a = pa0 + gain*da;
     var degs = 180*a/Math.PI;
-    report("dz: "+dz +"  degs: "+degs);
+    //report("dz: "+dz +"  degs: "+degs);
     setHeading(degs);
 }
 
 function setHeading(angle)
 {
-    report("setHeading "+angle);
-    P.root.rotation.y = - angle * Math.PI / 180.0;
+    //report("setHeading "+angle);
+    P.root.rotation.y = angle * Math.PI / 180.0;
 }
 
 function handleOrientation(msg) {
@@ -99,7 +110,7 @@ function handleOrientation(msg) {
       if (da < -180)
          da += 360;
    }
-   angle += da;
+   angle += ogain*da;
    report("angle: "+angle);
    CRANK_ANGLE = angle;
    setHeading(angle);
@@ -114,7 +125,7 @@ function handleMotion(msg) {
    prev_motion_t = null;
    //var da = 360*omega/(2*Math.PI);
    var da = omega;
-   angle += da;
+   angle += ogain*da;
    report("angle: "+angle);
    CRANK_ANGLE = angle;
    setHeading(angle);

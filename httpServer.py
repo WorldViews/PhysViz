@@ -4,9 +4,11 @@ import SocketServer
 
 PORT = 8000
 
-Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+bases = {"images", "C:"}
+class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+    pass
 
-httpd = SocketServer.TCPServer(("", PORT), Handler)
+httpd = SocketServer.TCPServer(("", PORT), MyHandler)
 
 print "serving HTTP at port", PORT
 httpd.serve_forever()
