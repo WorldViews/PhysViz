@@ -1,6 +1,7 @@
 
 var P = null;
 var HORIZONTAL = true;
+THREE.ImageUtils.crossOrigin = '';
 
 function report(s)
 {
@@ -62,7 +63,9 @@ function setupWorld(imageList)
       P.boxW = 1.5;
       P.boxH = 0.8;
       P.boxD = 0.1;
-      P.v0 = 0.01;
+      P.v0 = 0.04;
+      P.theta0 = 0;
+      P.xbias = 0;
 
       var controls = null;
 
@@ -104,7 +107,7 @@ function setupWorld(imageList)
 
       for (var i=0; i<imageList.length; i++) {
           var imageUrl = imageList[i];
-          //var imageBox = getImageBox(P, imageUrl);
+          //var imageObj = getImageBox(P, imageUrl);
           var imageObj = getImageCard(P, imageUrl);
           images.add(imageObj);
 	  imageObjs.push(imageObj)
@@ -115,19 +118,13 @@ function setupWorld(imageList)
       // LIGHT
       var light;
       light = new THREE.PointLight(0xeeeeff);
-      light.position.set(0,150,100);
-      scene.add(light);
-      light = new THREE.PointLight(0xeeffee);
-      light.position.set(100,50,150);
+      light.position.set(0,150,1000);
       scene.add(light);
       light = new THREE.PointLight(0xffeeee);
-      light.position.set(-150,50,150);
+      light.position.set(-150,50,1000);
       scene.add(light);
       light = new THREE.PointLight(0xffeeee);
-      light.position.set(100,-100,150);
-      scene.add(light);
-      light = new THREE.PointLight(0xffeeee);
-      light.position.set(100,100,-150);
+      light.position.set(150,50,-1050);
       scene.add(light);
       // FLOOR
       var floorTexture = new THREE.ImageUtils.loadTexture( 'images/floor.jpg' );
@@ -271,41 +268,6 @@ function adjustImageObjs(t0)
 }
 
 
-function Xhorizontal_adjustImageObjs(t0)
-{
-    if (!t0)
-	t0 = 0;
-    var y0 = 0
-    var z0 = -5;
-    var dy = 0.2;
-    var dt = 1;
-    var omega = 4;
-    var xMin = -10;
-    var xMax = 10;
-    var xMid = (xMin + xMax)/2.0;
-    var xWid = xMax - xMin;
-    for (var i=0; i<imageObjs.length; i++) {
-        var x = xMin + xWid*(i/(imageObjs.length -1));
-        var theta = 0.5* t0 + x*omega;
-        //var s = 1.0;
-        var dx = x-xMid;
-        var s = (xMax*xMax - dx*dx)/(xMax*xMax);
-        var r = 2.9*s;
-        var imageObj = imageObjs[i];
-        var y = y0 + r*Math.cos(theta);
-        var z = z0 + r*Math.sin(theta);
-        report("imageObj "+i+"  x: "+x+"  y: "+y+"   z: "+z+" s: "+s);
-        imageObj.scale.x = s;
-        imageObj.scale.y = s;
-        imageObj.scale.z = s;
-        imageObj.rotation.x = theta - Math.PI/2;
-        imageObj.position.x = x;
-	imageObj.position.y = y;
-        imageObj.position.z = z;
-    }
-}
-
-
 function horizontal_adjustImageObjs(t0)
 {
     if (!t0)
@@ -319,25 +281,34 @@ function horizontal_adjustImageObjs(t0)
     var xMax = 10;
     var xMid = (xMin + xMax)/2.0;
     var xWid = xMax - xMin;
-    for (var i=0; i<imageObjs.length; i++) {
-        var x = xMin + xWid*(i/(imageObjs.length -1));
-        var theta = 0.5* t0 + x*omega;
-        //var s = 1.0;
-        var dx = x-xMid;
-        var s = (xMax*xMax - dx*dx)/(xMax*xMax);
-        s = s*s + 0.001; // make sure not zero
+    var dx = xWid / imageObjs.length;
+    var N = imageObjs.length;
+    var drift = t0*0.05;
+    iLow = Math.floor(0 - drift/dx - P.xbias/dx);
+    var iHigh = iLow + N;
+    for (var j=iLow; j<iHigh; j++) {
+	i = (j + 100000*N) % N;
+        x0 = xMin + dx*j;
+        x = x0 + drift;
+        var theta = x*omega + P.theta0;
+        x += P.xbias;
+        var dm = x-xMid;
+        var s = (xMax*xMax - dm*dm)/(xMax*xMax);
+        s = s*s*s*s + 0.001; // make sure not zero
+	s = 1.1*s
         var r = 2.9*s;
-        var imageObj = imageObjs[i];
+        var obj = imageObjs[i];
         var y = y0 + r*Math.cos(theta);
         var z = z0 + r*Math.sin(theta);
+        obj = imageObjs[i];
         //report("imageObj "+i+"  x: "+x+"  y: "+y+"   z: "+z+" s: "+s+" theta: "+theta);
-        imageObj.scale.x = s;
-        imageObj.scale.y = s;
-        imageObj.scale.z = s;
-        imageObj.rotation.x = theta - Math.PI/2;
-        imageObj.position.x = x;
-	imageObj.position.y = y;
-        imageObj.position.z = z;
+        obj.rotation.x = theta - Math.PI/2;
+        obj.position.x = x;
+	obj.position.y = y;
+	obj.position.z = z;
+        obj.scale.x = s;
+	obj.scale.y = s;
+	obj.scale.z = s;
     }
 }
 

@@ -23,20 +23,172 @@
 
 <script src="imageScrolls.js"></script>
 <script src="paramsGUI.js"></script>
-<script>
+<script src="GetWebSock.js"></script><script>
+
+wsUrl = "ws://platonia:8100";
+report("using wsUrl: "+wsUrl);
+
+WS = GetWebSock({'motion': handleMotion,
+                 'joint': function(msg) {},
+                 'kinect.skeleton.pose': handleKinSkelPose},
+                 wsUrl);
 
 //HORIZONTAL = false;
+
+var imageBase = "../imagesPow2";
+//imageBase = "https://jumpchat.paldeploy.com/static/physviz/images";
 
 imageList = [];
 for (var i=1; i<=256; i++) {
 //for (var i=1; i<=128; i++) {
-    imageList[i] = "../images/image"+i+".jpg";
+//for (var i=1; i<=4; i++) {
+    imageList.push(imageBase + "/image"+i+".jpg");
 }
 
 $(document).ready(function() {
     setupWorld(imageList);
-    setupGUI(["v0"]);
+    setupGUI(["v0", "theta0", "xbias"]);
 });
+
+var right_tracking_on = false;
+var left_tracking_on = false;
+var gain = 1;
+var ogain = 1;
+
+function handleKinSkelPose(msg)
+{
+   handleRightHand(msg);
+   handleLeftHand(msg);
+}
+
+function handleRightHand(msg)
+{
+    //report("pose: "+JSON.stringify(msg));
+    //report("pa0: "+P.theta0);
+    rhand = msg.RIGHT_HAND;
+    head = msg.HEAD;
+    if (!rhand || !head) {
+        right_tracking_on = false;
+        return 0;
+    }
+    var x0 = head[0];
+    var z0 = head[1];
+    var y0 = head[2];
+    var x1 = rhand[0];
+    var z1 = rhand[1];
+    var y1 = rhand[2];
+    var dx = x1-x0;
+    var dy = y1-y0;
+    var dz = z1-z0;
+    if (dz < 0) {
+	if (right_tracking_on) {
+	    report("<<<< right_tracking_on "+false);
+        }
+        right_tracking_on = false;
+        return 0;
+    }
+    var a = - Math.atan2(dx,dy);
+    if (!right_tracking_on) {
+        right_tracking_on = true;
+        report(">>>> right_tracking_on "+right_tracking_on+" dx: "+dx+"   dy: "+dy);
+        pa0 = P.theta0;
+        report("pa0: "+pa0);
+        pa0 = pa0 % (2*Math.PI);
+        a0 = a;
+        report("a0: "+a0+"   pa0: "+pa0);
+    }
+    var da = a - a0;
+    a = pa0 + gain*da;
+    setTheta0(a);
+    return 1;
+}
+
+var trackx0 = 0;
+var xbias0 = 0;
+var xgain = 0.03;
+
+function handleLeftHand(msg)
+{
+    //report("pose: "+JSON.stringify(msg));
+    //report("pa0: "+P.theta0);
+    lhand = msg.LEFT_HAND;
+    head = msg.HEAD;
+    if (!rhand || !head) {
+        right_tracking_on = false;
+        return 0;
+    }
+    var x0 = head[0];
+    var z0 = head[1];
+    var y0 = head[2];
+    var x1 = lhand[0];
+    var z1 = lhand[1];
+    var y1 = lhand[2];
+    var dx = x1-x0;
+    var dy = y1-y0;
+    var dz = z1-z0;
+    if (dz < 0) {
+	if (left_tracking_on) {
+	    report("<<<< right_tracking_on "+false);
+        }
+        left_tracking_on = false;
+        return 0;
+    }
+    if (!left_tracking_on) {
+        left_tracking_on = true;
+        report(">>>> left_tracking_on "+left_tracking_on+" dx: "+dx+"   dy: "+dy);
+        trackx0 = x1;
+        xbias0 = P.xbias;
+    }
+    var dx = x1 - trackx0;
+    P.xbias = xbias0 + xgain*dx;
+    return 1;
+}
+
+function setTheta0(angle)
+{
+    //report("setHeading "+angle);
+    P.theta0 = angle;
+}
+
+var angle = 0;
+
+function handleOrientation(msg) {
+   report("msg: "+JSON.stringify(msg));
+   var a = msg.yaw;
+   var da = 0;
+   if (prev_a == null) {
+      prev_a = a;
+   }
+   else {
+      da = a - prev_a;
+      prev_a = a;
+      if (da > 180)
+         da -= 360;
+      if (da < -180)
+         da += 360;
+   }
+   angle += ogain*da;
+   report("angle: "+angle);
+   CRANK_ANGLE = angle;
+   P.xbias = CRANK_ANGLE;
+//   setHeading(angle);
+}
+
+
+function handleMotion(msg) {
+   report("msg: "+JSON.stringify(msg));
+   var rrate = msg.rotationRate;
+   var idx = 2;
+   var omega = rrate[idx];
+   prev_motion_t = null;
+   //var da = 360*omega/(2*Math.PI);
+   var da = omega;
+   angle += ogain*da;
+   report("angle: "+angle);
+   CRANK_ANGLE = angle;
+   P.xbias = CRANK_ANGLE;
+//   setHeading(angle);
+}
 
 </script>
 </body>

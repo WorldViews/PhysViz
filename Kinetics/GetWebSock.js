@@ -39,10 +39,14 @@ if ('WebSocket' in window){
 var ws = null;
 var numMsgs = 0;
 
-
-function GetWebsocket(handlers, url)
+//
+// Don't call this directly... use GetWebSock
+//
+function GetWebsocket_(handlers, url)
 {
-   if (!url) {
+   report("GetWebSocket url: "+url);
+   if (url === undefined ) {
+       report("setting default websocket url");
        domain = document.domain;
        if (!domain) {
 	   domain = "platonia";
@@ -51,7 +55,6 @@ function GetWebsocket(handlers, url)
        }
        url = "ws://"+domain+":"+WS.defaultPort+"/";
    }
-   //url = "ws://localhost:8100/";
    console.log("GetWebsocket "+url);
    WS.ws = new WebSocket(url);
    //WS.ws = new WebSocket('ws://localhost:8000/');
@@ -109,11 +112,11 @@ function GetWebsocket(handlers, url)
    };
 }
 
-function tryConnect(handlers)
+function tryConnect(handlers, url)
 {
     if (WS.ws == null) {
 	console.log("*** tick - get web socket ***");
-	GetWebsocket(handlers);
+	GetWebsocket_(handlers, url);
     }
     else {
         console.log("*** tick - nothing to do ***");
@@ -121,10 +124,10 @@ function tryConnect(handlers)
 }
 
 
-function GetWebSock(handlers)
+function GetWebSock(handlers, url)
 {
-    tryConnect(handlers);
-    setInterval(function() { tryConnect(handlers); }, 2000);
+    tryConnect(handlers, url);
+    setInterval(function() { tryConnect(handlers, url); }, 2000);
     return WS;
 }
 
