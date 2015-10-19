@@ -103,6 +103,8 @@ function setupWorld()
       P.helix = getHelix(P);
       scene.add(P.helix)
 
+      var sbox = getSkyBox();
+      scene.add(sbox.mesh);
       // LIGHT
       var light;
       light = new THREE.PointLight(0xeeeeff);

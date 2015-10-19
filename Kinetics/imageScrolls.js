@@ -66,6 +66,8 @@ function setupWorld(imageList)
       P.v0 = 0.04;
       P.theta0 = 0;
       P.xbias = 0;
+      P.lastTrackedTime = 0;
+      P.pauseTime = 5;
 
       var controls = null;
 
@@ -115,6 +117,9 @@ function setupWorld(imageList)
       scene.add(images);
       adjustImageObjs();
 
+      var sbox = getSkyBox();
+      scene.add(sbox.mesh);
+
       // LIGHT
       var light;
       light = new THREE.PointLight(0xeeeeff);
@@ -129,8 +134,11 @@ function setupWorld(imageList)
       // FLOOR
       var floorTexture = new THREE.ImageUtils.loadTexture( 'images/floor.jpg' );
       floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+      var fs = 40;
       floorTexture.repeat.set( 10, 10 );
+      //floorTexture.repeat.set( fs, fs );
       var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+      //var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
       var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
       var floor = new THREE.Mesh(floorGeometry, floorMaterial);
       floor.position.y = -100.0;
@@ -152,9 +160,11 @@ function setupWorld(imageList)
           //report("------------------------------\nrender n: "+steps);
 	  requestAnimationFrame( render );
           steps += 1;
-          adjust = 1;
+	  var ct = new Date().getTime() / 1000;
+	  adjust = 1;
           if (adjust) {
-              t0 += P.v0;
+	      if (ct - P.lastTrackedTime > P.pauseTime)
+		  t0 += P.v0;
               adjustImageObjs(t0);
           }
           renderer.render(scene, camera);
