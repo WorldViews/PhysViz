@@ -317,7 +317,9 @@ function Skirt(w, h, x0, y0) {
 	    if (rotateSkirt) {
 		//report("rotateSkirt "+time);
 		var dt = time - lastTime;
-		this.theta0 = this.rotSpeed*2*Math.PI*dt/1000;
+		var rs = this.rotSpeed * Math.sin(time / (60*1000));
+                //this.theta0 = this.rotSpeed*2*Math.PI*dt/1000;
+		this.theta0 = rs*2*Math.PI*dt/1000;
 		for (i = 0, il = pins.length; i < il; i ++) {
 		    var xy = pins[i];
 		    var p = particles[xy];
