@@ -22,7 +22,7 @@ DAMPING = 0.01;
 var DRAG = 1 - DAMPING;
 var MASS = .1;
 var restDistance = 25;
-var clothRotationSpeed = 0.5; // revolutions per minute
+var clothRotationSpeed = 0.2; // revolutions per minute
 
 //var xSegs = 10; //
 //var ySegs = 14; //
@@ -31,8 +31,8 @@ var ySegs = 12; //
 var numRotations = 1.2; // how many rotations of fabric to set up.
 
 //var skirt1 = new Skirt(xSegs, ySegs);
-var skirt1 = new Skirt(xSegs, ySegs, 0, 0);
-var skirt2 = new Skirt(xSegs, ySegs, 300, 100);
+//var skirt1 = new Skirt(xSegs, ySegs, 0, 0);
+//var skirt2 = new Skirt(xSegs, ySegs, 300, 100);
 
 var GRAVITY = 981 * 1.4; // 
 var gravity = new THREE.Vector3( 0, -GRAVITY, 0 ).multiplyScalar(MASS);
@@ -149,6 +149,7 @@ function Skirt(w, h, x0, y0) {
     //	h = h || 10;
 	w = w || xSegs;
 	h = h || ySegs;
+	this.rotSpeed = clothRotationSpeed;
 	this.w = w;
 	this.h = h;
 	this.theta0 = 0;
@@ -254,7 +255,8 @@ function Skirt(w, h, x0, y0) {
 	    if (wind) {
 		var face, faces = clothGeometry.faces, normal;
 
-		particles = skirt1.particles;
+		//particles = skirt1.particles;
+		particles = this.particles;
 
 		for (i = 0,il = faces.length; i < il; i ++) {
 		    face = faces[i];
@@ -267,7 +269,7 @@ function Skirt(w, h, x0, y0) {
 		}
 	    }
 	
-	    for (particles = skirt1.particles, i = 0, il = particles.length
+	    for (particles = this.particles, i = 0, il = particles.length
 		     ; i < il; i ++) {
 		particle = particles[i];
 		particle.addForce(gravity);
@@ -276,7 +278,7 @@ function Skirt(w, h, x0, y0) {
 
 	    // Start Constrains
 
-	    constrains = skirt1.constrains,
+	    constrains = this.constrains,
 		il = constrains.length;
 	    for (i = 0; i < il; i ++) {
 		constrain = constrains[i];
@@ -289,7 +291,7 @@ function Skirt(w, h, x0, y0) {
 	    ballPosition.x = Math.cos(Date.now() / 400) * 70;
 
 	    if (sphere.visible) {
-		for (particles = skirt1.particles, i = 0, il = particles.length
+		for (particles = this.particles, i = 0, il = particles.length
 			 ; i < il; i ++) {
 		    particle = particles[i];
 		    pos = particle.position;
@@ -303,7 +305,7 @@ function Skirt(w, h, x0, y0) {
 	    }
 
 	    // Floor Constains
-	    for (particles = skirt1.particles, i = 0, il = particles.length
+	    for (particles = this.particles, i = 0, il = particles.length
 		     ; i < il; i ++) {
 		particle = particles[i];
 		pos = particle.position;
@@ -315,7 +317,7 @@ function Skirt(w, h, x0, y0) {
 	    if (rotateSkirt) {
 		//report("rotateSkirt "+time);
 		var dt = time - lastTime;
-		this.theta0 = clothRotationSpeed*2*Math.PI*dt/1000;
+		this.theta0 = this.rotSpeed*2*Math.PI*dt/1000;
 		for (i = 0, il = pins.length; i < il; i ++) {
 		    var xy = pins[i];
 		    var p = particles[xy];
