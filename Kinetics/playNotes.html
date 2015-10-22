@@ -50,7 +50,7 @@ var instrument = "choir_aahs";
 //var melodyUrl = "midi/beethovenSym5m1.json";
 //var melodyUrl = "midi/funky.json";
 var melodyUrl = "midi/shepard.json";
-var ticksPerBeat = 1000;
+var ticksPerBeat = 2500;
 
 function stopPlaying()
 {
@@ -72,7 +72,7 @@ function playObj(obj)
     report("Playing object");
     var notes = obj.notes;
     maxNumNotes = 0;
-    var delay0 = 0;
+    var delay0 = 1;
     for (var i=0; i<notes.length; i++) {
        var note = notes[i];
        var pitch = note[0];

@@ -97,7 +97,7 @@ def genShepard(nvoices, noctaves):
     tobj = TrackObj()
     for v in range(nvoices):
         sv = ShepVoice(noctaves, 12*v)
-        for i in range(1000):
+        for i in range(200):
             note = sv.getNote(i)
             print i, note
             if note:
@@ -148,15 +148,17 @@ def dump(path):
         print pattern
 
 
-if __name__ == '__main__':
+def run():
     genShepard(5, 5)
-    xxx
+    return
     path = "minute_waltz.mid"
     path = "chopin69.mb64"
     path = "wtc0.mb64"
     path = "beethovenSym5m1.mb64"
     dump(path)
 
+if __name__ == '__main__':
+    run()
 
 
 
