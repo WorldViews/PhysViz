@@ -17,12 +17,12 @@ function report(str)
 
 
 var DAMPING = 0.03;
-//var DAMPING = 0.03;
-DAMPING = 0.01;
+DAMPING = 0.005;
+DAMPING = 0.0;
 var DRAG = 1 - DAMPING;
 var MASS = .1;
 var restDistance = 25;
-var clothRotationSpeed = 0.2; // revolutions per minute
+var clothRotationSpeed = 0.2; // revolutions per second
 
 //var xSegs = 10; //
 //var ySegs = 14; //
@@ -46,7 +46,7 @@ var pins = [];
 
 var wind = false;
 //var windStrength = 2;
-var windStrength = .1;
+var windStrength = .01;
 var windForce = new THREE.Vector3(0,0,0);
 
 var ballPosition = new THREE.Vector3(0, -45, 0);
