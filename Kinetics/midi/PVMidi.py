@@ -10,16 +10,63 @@ from midi.events import *
 
 import base64
 
+class Note:
+    def __init__(self, pitch, t0, velocity, dur=None):
+        self.pitch = pitch
+        self.parts = [[t0,velocity]]
+        if dur:
+            self.finish(t0+dur)
+
+    def getT0(self):
+        return self.parts[0][0]
+
+    def extend(self, t, velocity):
+        self.parts.append([t,velocity])
+
+    def finish(self, t):
+        self.parts.append([t,0])
+
+    def toDict(self):
+        t0 = self.parts[0][0]
+        v = self.parts[0][1]
+        dur = self.parts[-1][0] - t0
+        d = {"type": "note",
+             "t0": t0,
+             "pitch": self.pitch,
+             "dur": dur,
+             "v": v}
+        if len(self.parts) != 2:
+            print "Note withless than less than 2 parts"
+            d['parts'] = self.parts
+        return d
+
+    def toList(self):
+        t0 = self.parts[0][0]
+        v = self.parts[0][1]
+        dur = self.parts[-1][0] - t0
+        lst = ["note", t0, self.pitch, v, dur]
+        if len(self.parts) != 2:
+            print "Note withless than less than 2 parts"
+            lst.append(self.parts)
+        return lst
+
+            
 class TrackObj:
     def __init__(self, track=None):
-        self.notes = []
+        self.events = {}
         if track:
             self.observeTrack(track)
 
+    def addNote(self, note):
+        t0 = note.getT0()
+        if t0 in self.events:
+            self.events[t0].append(note)
+        else:
+            self.events[t0] = [note]
+        
     def observeTrack(self, track):
         tn = 0
         openNotes = {}
-        completeNotes = self.notes
         for evt in track:
             tick = evt.tick
             tn += tick
@@ -29,16 +76,20 @@ class TrackObj:
                 #print tn, evt.name, evt.pitch, evt.velocity
                 if isinstance(evt, NoteOnEvent):
                     if pitch in openNotes:
-                        openNotes[pitch].append((tn, v))
+                        openNotes[pitch].extend(tn,v)
                     else:
-                        openNotes[pitch] = [pitch, (tn,v)]
+                        openNotes[pitch] = Note(pitch, tn, v)
+                    if v == 0:
+                        note = openNotes[pitch]
+                        self.addNote(note)
+                        del openNotes[pitch]
                 elif isinstance(evt, NoteOffEvent):
                     if v != 64:
                         print "NoteOff with v != 64"
                     if pitch in openNotes:
                         note = openNotes[pitch]
-                        note.append((tn,0))
-                        completeNotes.append(note)
+                        note.finish(tn)
+                        self.addNote(note)
                         del openNotes[pitch]
                     else:
                         print "NoteOff for unstarted note"
@@ -50,17 +101,28 @@ class TrackObj:
                 print "End of track"
                 for pitch in openNotes:
                     note = openNotes[pitch]
-                    note.append((tn,0))
-                    completeNotes.append(note)
+                    note.finish(tn)
+                    self.addNote(note)
             elif isinstance(evt, ControlChangeEvent):
                 pass
             else:
                 print evt.name
 
     def saveAsJSON(self, path):
-        obj = {'type': 'Track',
-               'notes': self.notes}
-        json.dump(obj, file(path, "w"))
+        print "Saving TrackObj to", path
+        seq = []
+        keys = self.events.keys()
+        keys.sort()
+        for t in keys:
+            eventsAtT = []
+            evts = self.events[t]
+            for evt in evts:
+#                eventsAtT.append(evt.toList())
+                eventsAtT.append(evt.toList())
+            seq.append([t, eventsAtT])
+        obj = {'type': 'Sequence',
+               'seq': seq}
+        json.dump(obj, file(path, "w"),indent=4, sort_keys=True)
 
     def dump(self):
         print "%d complete notes" % len(self.notes)
@@ -87,10 +149,10 @@ class ShepVoice:
         f = (p-self.low)/float(self.nsteps - 1)
         a = int(120 * math.sin(f*math.pi))
         if a == 0:
-            return None
+            return 0, None
         tOn = i*self.ticksPerBeat
         tOff = (i+self.dur)*self.ticksPerBeat
-        return [p, [tOn,a], [tOff,0]]
+        return tOn, Note(p, tOn, a, self.dur*self.ticksPerBeat)
 
         
 def genShepard(nvoices, noctaves):
@@ -98,11 +160,15 @@ def genShepard(nvoices, noctaves):
     for v in range(nvoices):
         sv = ShepVoice(noctaves, 12*v)
         for i in range(200):
-            note = sv.getNote(i)
-            print i, note
+            tOn, note = sv.getNote(i)
             if note:
-                tobj.notes.append(note)
+                #print i, note.toList()
+                tobj.addNote(note)
+            else:
+                print i, None
     tobj.saveAsJSON("shepard.json")
+#    sobj = SeqObj(tobj)
+#    sobj.saveAsJSON("shepard.seq.json")
 
 
 def convertToJSON(path, jpath=None):
@@ -149,13 +215,11 @@ def dump(path):
 
 
 def run():
+    dump("beethovenSym5m1.mb64")
     genShepard(5, 5)
-    return
-    path = "minute_waltz.mid"
-    path = "chopin69.mb64"
-    path = "wtc0.mb64"
-    path = "beethovenSym5m1.mb64"
-    dump(path)
+    dump("minute_waltz.mid")
+    dump("chopin69.mb64")
+    dump("wtc0.mb64")
 
 if __name__ == '__main__':
     run()
