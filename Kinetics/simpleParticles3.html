@@ -45,10 +45,10 @@
 
 function report(str) { console.log(str); }
 
-var period = 15;
-var ngthings = 1000;
+var period = 10;
+var ngthings = 4;
 var gthings= [];
-var partsPerThing = 1;
+var partsPerThing = 100;
 
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
@@ -76,22 +76,31 @@ var partsPerThing = 1;
 			        var wid = 1000;
                                 var t0 = Date.now()/1000;
 				for ( var i = 0; i < ngthings; i ++ ) {
+				        var gthing = {};
+                                        /*
 					var c = new THREE.Vector3();
 					c.x = 2*wid * (Math.random() -0.5);
 					c.y = wid * (Math.random() -0.5);
-					c.z = 2*wid * (Math.random() -0.5);
-				        var gthing = {position: c};
+					c.z = 0*wid * (Math.random() -0.5);
+				        gthing.c = position;
+                                        */
 				        var geometry = new THREE.Geometry();
                                         for (var j=0; j<partsPerThing; j++) {
-					    var v = c.clone();
+					    var v = new THREE.Vector3();
+					    v.x = 2*wid * (Math.random() -0.5);
+					    v.y = wid * (Math.random() -0.5);
+					    v.z = 0*wid * (Math.random() -0.5);
 					    geometry.vertices.push( v );
                                         }
                                         color = 0xFF0000;
-                                        size = 20;
+                                        size = 30.5;
 				        material = new THREE.PointCloudMaterial( { size: size,
                                                                                    opacity: 1,
 								             color: color, transparent: true } );
-                                        gthing.t0 = t0 - Math.random()*period;
+                                        //gthing.t0 = t0 - Math.random()*period;
+                                        var dt = period*i/ngthings;
+                                        gthing.t0 = t0 - dt;
+                                        report("dt: "+dt);
                                         gthing.particles = new THREE.PointCloud( geometry, material );
                                         gthing.geometry = geometry;
 					gthing.material = material;
@@ -188,8 +197,8 @@ var partsPerThing = 1;
 function tweak(t)
 {
     var dh = 1.0;
-    var fmin = 1;
-    var fmax = 6;
+    var fmin = 0.5;
+    var fmax = 2;
     var k = Math.log(fmax/fmin);
     var PI2 = Math.PI*2;
     for ( var i = 0; i < ngthings; i++ ) {
@@ -203,18 +212,18 @@ function tweak(t)
         }
         var pf = dt / period;
         var f = fmin * Math.exp(k*pf);
-        for (var k=0; k<gt.geometry.vertices.length; k++) {
-           var s = Math.sin( f*dt*PI2 );
-           var opacity = Math.sin(Math.PI*pf);
-           if (s < 0)
-               gt.material.color.setRGB(255, 0, 0);
-	   else
-               gt.material.color.setRGB(0, 255, 0);
-           gt.material.opacity = opacity;
-	   var v = gt.geometry.vertices[k];
-           v.copy(c);
-	   if (i==10)
-             report("tweak "+i+" dt: "+dt+" s: "+s+" opacity: "+opacity);
+        var s = Math.sin( f*dt*PI2 );
+        var opacity = Math.sin(Math.PI*pf);
+        if (s < 0)
+            gt.material.color.setRGB(255, 0, 0);
+        else
+            gt.material.color.setRGB(0, 255, 0);
+        gt.material.opacity = opacity;
+        for (var m=0; m<gt.geometry.vertices.length; m++) {
+	   //var v = gt.geometry.vertices[m];
+           //v.copy(c);
+	   //if (i==10)
+           //  report("tweak "+i+" dt: "+dt+" s: "+s+" opacity: "+opacity);
         }
         gt.geometry.verticesNeedUpdate = true;
     }
