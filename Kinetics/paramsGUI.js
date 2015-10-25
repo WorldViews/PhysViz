@@ -1,27 +1,67 @@
 
 var inputNames = [];
 
-function getVal(id)
+function getObjAndId(id)
+{
+    var i = id.indexOf(".");
+    if (i < 0)
+        i = id.indexOf("_");
+    if (i < 0)
+        return {'obj': 'P', id: id};
+    var objName = id.slice(0,i);
+    id = id.slice(i+1);
+    return {'obj': objName, 'id': id};
+}
+
+function setObjVal(id, val)
+{
+   var objAndId = getObjAndId(id);
+   report("objAndId: "+JSON.stringify(objAndId));
+   var id_ = objAndId.id;
+   var objName = objAndId.obj;
+   var obj = eval(objName);
+   obj[id_] = val;
+}
+
+function getObjVal(id)
+{
+   var objAndId = getObjAndId(id);
+   report("objAndId: "+JSON.stringify(objAndId));
+   var id_ = objAndId.id;
+   var objName = objAndId.obj;
+   var obj = eval(objName);
+   return obj[id_];
+}
+
+function getValFromForm(id)
 {
    var s = $("#"+id).val();
    report("got "+id+" "+s);
-   P[id] = eval(s);
+   setObjVal(id, eval(s));
 }
 
-function getVals(e)
+function getValsFromForm(e)
 {
     for (var i=0; i<inputNames.length; i++) {
-        getVal(inputNames[i]);
+        getValFromForm(inputNames[i]);
     }
+}
+
+function getVals()
+{
+    report("******* PLEASE replace getVals by getValsFromForm ******");
+    getValsFromForm();
 }
 
 function addInput(id)
 {
-   inputNames.push(id);
+   var gid = id.replace(".", "_");
+   inputNames.push(gid);
    var pd = $("#params");
    report("add input for "+id);
    pd.append("<br>\n");
-   pd.append("&nbsp;"+id+": <input id='"+id+"' value='"+P[id]+"'>\n");
+   var val = getObjVal(gid);
+   pd.append("&nbsp;"+id+": <input id='"+gid+"' value='"+val+"'>\n");
 }
 
 
@@ -30,7 +70,7 @@ function setFun(id)
     addInput(id);
     $("#"+id).keypress(function (e) {
        if(e.which == 13)  // the enter key code
-           getVals();
+           getValsFromForm();
     });
 }
 

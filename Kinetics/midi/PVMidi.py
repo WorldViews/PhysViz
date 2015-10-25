@@ -181,15 +181,15 @@ def convertToJSON(path, jpath=None):
     print "ntracks:", ntracks
     for track in pattern:
         i += 1
+        #if ntracks > 1:
+        #    jpath = path.replace(".mid", "%d.json" % i)
         print "track %d" % i
         tobj = TrackObj(track)
         #tobj.dump()
         tobj.saveAsJSON(jpath)
-        continue
         for evt in track:
             print ".....", evt
         print "-------"
-
 
 """
 Convert one of the base64 coded data urls found
@@ -215,6 +215,9 @@ def dump(path):
 
 
 def run():
+    dump("jukebox.mid")
+    return
+    dump("BluesRhythm1.mid")
     dump("beethovenSym5m1.mb64")
     genShepard(5, 5)
     dump("minute_waltz.mid")

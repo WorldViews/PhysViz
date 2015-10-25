@@ -48,7 +48,7 @@ function getHelix(P)
 
 function reset()
 {
-   getVals();
+   getValsFromForm();
    var x = P.x0;
    var omega = 2*Math.PI/12.0;
    var r = P.helixR;

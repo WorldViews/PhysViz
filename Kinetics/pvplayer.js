@@ -1,6 +1,6 @@
 
 var PLAYER = {};
-PLAYER.ticksPerBeat = 2000;
+PLAYER.ticksPerBeat = 500;
 PLAYER.delay0 = 1;
 PLAYER.isPlaying = false;
 PLAYER.isAsync = false;
@@ -214,6 +214,6 @@ PLAYER.update = function()
     PLAYER.prevClockTime = clockTime;
     dt *= 10.0;
     var dx = dt*PLAYER.distPerSec*dt;
-    report("translating graphic by "+dx);
+    //report("translating graphic by "+dx);
     PLAYER.graphics.position.x -= dx;
 }
