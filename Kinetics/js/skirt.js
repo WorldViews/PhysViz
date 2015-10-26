@@ -15,7 +15,7 @@ function report(str)
     console.log(str);
 }
 
-
+var CRANK_ANGLE = null;
 var DAMPING = 0.03;
 DAMPING = 0.005;
 DAMPING = 0.0;
@@ -315,11 +315,15 @@ function Skirt(w, h, x0, y0) {
 	    }
 
 	    if (rotateSkirt) {
-		//report("rotateSkirt "+time);
+		report("rotateSkirt "+time);
 		var dt = time - lastTime;
 		var rs = this.rotSpeed * Math.sin(time / (60*1000));
                 //this.theta0 = this.rotSpeed*2*Math.PI*dt/1000;
 		this.theta0 = rs*2*Math.PI*dt/1000;
+		if (CRANK_ANGLE != null) {
+                    report("CRANK_ANGLE: "+CRANK_ANGLE);
+		    this.theta0 = CRANK_ANGLE;
+                }
 		for (i = 0, il = pins.length; i < il; i ++) {
 		    var xy = pins[i];
 		    var p = particles[xy];

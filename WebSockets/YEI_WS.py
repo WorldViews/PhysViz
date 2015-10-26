@@ -11,12 +11,9 @@ WS.USE_INFO_SERVER = True
 WS.INFO_SERVER_PORT = 8130
 WS.WS_PORT = 8100
 WS.PORT = WS.WS_PORT
-#SSL_PORT = 8000
-
 
 def sendAngles_(server, angles):
     msg = {'msgType': 'YEI', 'angles': angles}
-    #print msg
     server.sendMessageToAllClients(msg)
 
 def sendAngles(server, angles):
@@ -24,7 +21,6 @@ def sendAngles(server, angles):
         sendAngles_(server, angles)
     except:
         traceback.print_exc()
-
 
 if __name__ == "__main__":
 #   server = WS.getServer()

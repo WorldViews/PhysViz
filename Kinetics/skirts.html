@@ -51,6 +51,7 @@
 
 		<script src="js/skirt.js"></script>
 
+		<script src="GetWebSock.js"></script>
 		<script type="x-shader/x-fragment" id="fragmentShaderDepth">
 
 			uniform sampler2D texture;
@@ -94,6 +95,39 @@
 		</script>
 
 		<script>
+
+var angle = 0;
+var prev_a = null;
+//var CRANK_ANGLE = null;
+
+WS = GetWebSock({'motion': handleMotion,
+                 'YEI': handleYEI } );
+
+function handleMotion(msg)
+{
+}
+
+function handleYEI(msg) {
+   //report("msg: "+JSON.stringify(msg));
+   var angles = msg.angles;
+   var a = angles[1];
+
+   var da = 0;
+   if (prev_a == null) {
+      prev_a = a;
+   }
+   else {
+      da = a - prev_a;
+      prev_a = a;
+      if (da > 180)
+         da -= 360;
+      if (da < -180)
+         da += 360;
+   }
+   angle += da;
+//   report("angle: "+angle);
+   CRANK_ANGLE = angle*Math.PI/180;
+}
 
 function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 
