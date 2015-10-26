@@ -74,6 +74,8 @@ Audio created with <a href="https://github.com/mudcube/MIDI.js">MIDI.js</a><br>
 <button onclick='loadInstrument("acoustic_grand_piano");'>Piano</button>
 <button onclick='loadInstrument("violin");'>Violin</button>
 <button onclick='loadInstrument("harpsichord");'>Harpsichord</button>
+<button onclick='loadInstrument("synth_drum")'>Synth Drum</button>
+<button onclick='loadInstrument("paradiddle")'>Paradiddle</button>
 <br>
 <canvas id="canvas1" width="200" height="200"></canvas>
 <canvas id="mycanvas" width="800" height="800" style="width: 800px; height: 800px;">
@@ -97,7 +99,8 @@ var prev_a = null;
 var prev_motion_t = null;
 
 //WS = GetWebSock({'orientation': handleOrientation } );
-WS = GetWebSock({'motion': handleMotion } );
+WS = GetWebSock({'motion': handleMotion,
+                 'YEI': handleYEI } );
 
 function handleOrientation(msg) {
    report("msg: "+JSON.stringify(msg));
@@ -121,6 +124,28 @@ function handleOrientation(msg) {
 }
 
 
+function handleYEI(msg) {
+   //report("msg: "+JSON.stringify(msg));
+   var angles = msg.angles;
+   var a = angles[1];
+
+   var da = 0;
+   if (prev_a == null) {
+      prev_a = a;
+   }
+   else {
+      da = a - prev_a;
+      prev_a = a;
+      if (da > 180)
+         da -= 360;
+      if (da < -180)
+         da += 360;
+   }
+   angle += da;
+//   report("angle: "+angle);
+   CRANK_ANGLE = angle;
+}
+
 function handleMotion(msg) {
    report("msg: "+JSON.stringify(msg));
    var rrate = msg.rotationRate;
@@ -134,6 +159,7 @@ function handleMotion(msg) {
    CRANK_ANGLE = angle;
    showHeading(angle);
 }
+
 
 function showHeading(h)
 {
