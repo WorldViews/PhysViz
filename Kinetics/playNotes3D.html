@@ -63,7 +63,6 @@ stopPlaying = PLAYER.stopPlaying;
      (this calls MIDI.stopAllNotes() but that seems to not work.)<br>
    </div>
 </div>
-
 <script src="barberMidi.js"></script>
 <script src="paramsGUI.js"></script>
 <script src="skyBox.js"></script>
@@ -74,6 +73,7 @@ $(document).ready(function() {
    setupWorld();
    setupGUI(["hv0", "v0", "dv", "cs1", "cs2", "helixR",
              "PLAYER.ticksPerBeat"]);
+   PLAYER.scene = P.scene;
    $("#audio").click(toggleAudio);
    $("#colors").click(toggleColor);
 });

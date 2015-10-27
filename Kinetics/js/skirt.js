@@ -28,9 +28,9 @@ SKIRT.clothRotationSpeed = 0.2; // revolutions per second
 SKIRT.rotateSkirts = false;
 
 SKIRT.xSegs = 12; //
-//SKIRT.ySegs = 14; //
-SKIRT.ySegs = 6; //
-SKIRT.flare = 2;
+SKIRT.ySegs = 12; //
+//SKIRT.ySegs = 6; //
+SKIRT.flare = 1.9;
 SKIRT.numRotations = 1.0; // how many rotations of fabric to set up.
 
 SKIRT.GRAVITY = 981 * 1.4; // 
@@ -44,7 +44,6 @@ SKIRT.skirts = [];
 SKIRT.wind = false;
 SKIRT.windStrength = .2;
 SKIRT.windForce = new THREE.Vector3(0,0,0);
-
 
 var ballPosition = new THREE.Vector3(0, -45, 0);
 var ballSize = 60; //40
@@ -171,8 +170,9 @@ function Skirt(w, h, x0, y0) {
 	for (v = 0; v <= h; v ++) {
             for (u = 0; u <= w; u ++) {
                 var mass = SKIRT.MASS;
-                if (u == 0 || u == w)
-                    mass /= 2;
+                if (u == 0 || u == w) {
+		    // mass *= 1.5;
+		}
 	 	particles.push(
                     new Particle(this, u / w, v / h, 0, mass, [u,v])
 		);
@@ -225,7 +225,7 @@ function Skirt(w, h, x0, y0) {
 
 	if (SKIRT.closeSeams) {
             report("Adding constraintes to close seam.");
-	    for (u = w, v = 0; v < h; v ++) {
+	    for (u = w, v = 0; v <= h; v ++) {
 		constrains.push([
 			particles[index(0, v)],
 			particles[index(u, v)],
@@ -236,7 +236,7 @@ function Skirt(w, h, x0, y0) {
 	    }
 	}
 
-	dumpConstraints();
+	//dumpConstraints();
 
 	// While many system uses shear and bend springs,
 	// the relax constrains model seem to be just fine
@@ -340,7 +340,7 @@ function Skirt(w, h, x0, y0) {
 	    }
 
 	    // Ball Constrains
-
+	    /*
 	    ballPosition.z = -Math.sin(Date.now() / 600) * 90 ; //+ 40;
 	    ballPosition.x = Math.cos(Date.now() / 400) * 70;
 
@@ -357,6 +357,7 @@ function Skirt(w, h, x0, y0) {
 		    }
 		}
 	    }
+	    */
 
 	    // Floor Constains
 	    for (particles = this.particles, i = 0, il = particles.length

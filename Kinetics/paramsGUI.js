@@ -83,10 +83,22 @@ function toggleParams()
         $("#params").hide();
 }
 
+function handleReset(e)
+{
+   getValsFromForm();
+    if (reset) {
+        report("reset: "+reset);
+        report("typeof reset: "+typeof reset);
+        reset(e);
+    }
+    else {
+        report("No reset function defined");
+    }
+}
 
 function setupGUI(names)
 {
-    $("#reset").click(reset);
+    $("#reset").click(handleReset);
     $("#showParams").click(toggleParams);
     if (!names)
 	return;

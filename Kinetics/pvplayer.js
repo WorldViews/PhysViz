@@ -7,11 +7,13 @@ PLAYER.isAsync = false;
 PLAYER.distPerSec = 1.2;
 PLAYER.prevClockTime = null;
 PLAYER.graphics = null;
+PLAYER.scene = null;
+PLAYER.graphicsScale = null;
 
 PLAYER.stopPlaying = function ()
 {
    report("Stop Playing");
-   MIDI.stopAllNotes();
+   //   MIDI.stopAllNotes();
    PLAYER.isPlaying = false;
 }
 
@@ -30,8 +32,12 @@ PLAYER.playMidiTrack = function(obj)
         PLAYER.playAsync(obj);
     else
         PLAYER.playSync(obj);
-    if (scene) {
-        PLAYER.addNoteGraphics(scene, obj);
+    if (PLAYER.scene) {
+        report("***** adding Note Graphics ******");
+        PLAYER.addNoteGraphics(PLAYER.scene, obj);
+    }
+    else {
+        report("***** No registered scene so not adding Note Graphics ******");
     }
 }
 
@@ -192,11 +198,17 @@ PLAYER.addNoteGraphics = function(scene, midiTrack)
         scene.remove(PLAYER.graphics);
     }
 
-    report("Playing object Async");
+    report("Adding note graphics...");
     var events = midiTrack.seq;
     var gObj = new THREE.Object3D();
     for (var i=0; i<events.length; i++) {
 	PLAYER.graphicsHandleEventGroup(gObj, events[i]);
+    }
+    if (PLAYER.graphicsScale) {
+        var s = PLAYER.graphicsScale;
+        gObj.scale.x = s[0];
+        gObj.scale.y = s[1];
+        gObj.scale.z = s[2];
     }
     scene.add(gObj);
     PLAYER.graphics = gObj;

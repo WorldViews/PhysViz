@@ -84,6 +84,7 @@ function setupWorld()
       var controls = null;
 
       scene = new THREE.Scene();
+      P.scene = scene;
       camera = new THREE.PerspectiveCamera( 75,
                              window.innerWidth/window.innerHeight, 0.1, 1000 );
 
@@ -205,6 +206,8 @@ function setupWorld()
       };
 
       render();
+
+      return P;
 }
 
 function loadInstrument(instr, successFn)
