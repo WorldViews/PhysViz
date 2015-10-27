@@ -37,64 +37,21 @@
 		<div id="info">Simple Cloth Simulation<br/>
 			Verlet integration with Constrains relaxation<br/>
 			Toggle:
-                        <a onclick="rotateSkirt = !rotateSkirt;">Rotate Skirt</a> |
+                        <a onclick="SKIRT.rotateSkirts = !SKIRT.rotateSkirts;">Rotate Skirt</a> |
                         <a onclick="rotateCam = !rotateCam;">Rotate Camera</a> |
-			<a onclick="wind = !wind;">Wind</a> |
+			<a onclick="SKIRT.wind = !SKIRT.wind;">Wind</a> |
 			<a onclick="sphere.visible = !sphere.visible;">Ball</a> |
 			<a onclick="togglePins();">Pins</a>
 		</div>
 
-		<script src="js/three.js"></script>
+	<script src="js/three.js"></script>
+	<script src="js/Detector.js"></script>
+	<script src="js/libs/stats.min.js"></script>
 
-		<script src="js/Detector.js"></script>
-		<script src="js/libs/stats.min.js"></script>
+	<script src="js/skirt.js"></script>
+	<script src="GetWebSock.js"></script>
 
-		<script src="js/skirt.js"></script>
-
-		<script src="GetWebSock.js"></script>
-		<script type="x-shader/x-fragment" id="fragmentShaderDepth">
-
-			uniform sampler2D texture;
-			varying vec2 vUV;
-
-			vec4 pack_depth( const in float depth ) {
-
-				const vec4 bit_shift = vec4( 256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0 );
-				const vec4 bit_mask  = vec4( 0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0 );
-				vec4 res = fract( depth * bit_shift );
-				res -= res.xxyz * bit_mask;
-				return res;
-
-			}
-
-			void main() {
-
-				vec4 pixel = texture2D( texture, vUV );
-
-				if ( pixel.a < 0.5 ) discard;
-
-				gl_FragData[ 0 ] = pack_depth( gl_FragCoord.z );
-
-			}
-		</script>
-
-		<script type="x-shader/x-vertex" id="vertexShaderDepth">
-
-			varying vec2 vUV;
-
-			void main() {
-
-				vUV = 0.75 * uv;
-
-				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-
-				gl_Position = projectionMatrix * mvPosition;
-
-			}
-
-		</script>
-
-		<script>
+<script>
 
 var angle = 0;
 var prev_a = null;
@@ -134,36 +91,8 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 
 			/* testing cloth simulation */
 
-			var pinsFormation = [];
-			var pins = [6];
-
-			pinsFormation.push( pins );
-			
-			//pins = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ];
-			pins = [];
-			var numSegs = xSegs;
-			//for (var i=0; i<=skirt1.w; i++)
-			for (var i=0; i<=numSegs; i++)
-                           pins.push(i);						      
-			pinsFormation.push( pins );
-
-			pins = [ 0 ];
-			pinsFormation.push( pins );
-
-			pins = []; // cut the rope ;)
-			pinsFormation.push( pins );
-
-			//pins = [ 0, skirt1.w ]; // classic 2 pins
-			pins = [ 0, numSegs ]; // classic 2 pins
-			pinsFormation.push( pins );
-
-			pins = pinsFormation[ 1 ];
-
-
 			function togglePins() {
-
-				pins = pinsFormation[ ~~( Math.random() * pinsFormation.length ) ];
-
+				SKIRT.togglePins();
 			}
 
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -171,55 +100,15 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 			var container, stats;
 			var camera, scene, renderer;
 
-			var clothGeometry1;
-			var clothGeometry2;
 			var sphere;
 			var object, arrow;
 
-			//var rotateCam = true;
 			var rotateCam = false;
 			var rotateSkirt = false;
-			var skirts = [];
 
 			init();
 			animate();
 
-			function setupSkirt(scene, texPath, pos) {
-				if (!pos)
-				    pos = vec3(0,0,0)
-                                var skirt = new Skirt(xSegs, ySegs, pos.x, pos.z);
-				skirts.push(skirt);
-				var clothTexture = THREE.ImageUtils.loadTexture( texPath );
-				clothTexture.wrapS = clothTexture.wrapT = THREE.RepeatWrapping;
-				clothTexture.anisotropy = 16;
-				var clothMaterial = new THREE.MeshPhongMaterial( { alphaTest: 0.5, color: 0xffffff,
-						   specular: 0x030303, emissive: 0x111111, shiness: 10,
-						   map: clothTexture, side: THREE.DoubleSide } );
-
-				// cloth geometry
-				clothGeometry = new THREE.ParametricGeometry( skirt.clothFunction, skirt.w, skirt.h );
-				clothGeometry.dynamic = true;
-				clothGeometry.computeFaceNormals();
-
-				var uniforms = { texture:  { type: "t", value: clothTexture } };
-				var vertexShader = document.getElementById( 'vertexShaderDepth' ).textContent;
-				var fragmentShader = document.getElementById( 'fragmentShaderDepth' ).textContent;
-
-				// cloth mesh
-
-				object = new THREE.Mesh( clothGeometry, clothMaterial );
-				object.position.set( 0, 0, 0 );
-				object.castShadow = true;
-				object.receiveShadow = true;
-				scene.add( object );
-				object.customDepthMaterial = new THREE.ShaderMaterial(
-						   { uniforms: uniforms,
-						     vertexShader: vertexShader,
-						     fragmentShader: fragmentShader } );
-				skirt.geometry = clothGeometry;
-				return skirt;
-				// **** end 1 **************
-                        }
 
 			function init() {
 				container = document.createElement( 'div' );
@@ -254,7 +143,8 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 				light.shadowMapWidth = 1024;
 				light.shadowMapHeight = 1024;
 
-				var d = 300;
+				//var d = 300;
+				var d = 600;
 
 				light.shadowCameraLeft = -d;
 				light.shadowCameraRight = d;
@@ -266,15 +156,11 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 
 				scene.add( light );
 
-				// **** Start 1
-
-				//setupSkirt(skirt1, scene, 'textures/patterns/paisley1.jpg');
-				//setupSkirt(skirt2, scene, 'textures/patterns/paisley2.jpg');
-				var skirt1 = setupSkirt(scene, 'textures/patterns/paisley1.jpg', vec3(-400,  0,  0));
-				var skirt2 = setupSkirt(scene, 'textures/patterns/paisley2.jpg', vec3(   0,  0,  0));
-				var skirt3 = setupSkirt(scene, 'textures/patterns/fabric3.jpg',  vec3( 400,  0,  0));
-				skirt2.rotSpeed = 2*skirt1.rotSpeed;
-				skirt3.rotSpeed = 1.2*skirt2.rotSpeed;
+				var sk1 = SKIRT.setupSkirt(scene, 'textures/patterns/paisley1.jpg', vec3(-400,  0,  0));
+				var sk2 = SKIRT.setupSkirt(scene, 'textures/patterns/paisley2.jpg', vec3(   0,  0,  0));
+				var sk3 = SKIRT.setupSkirt(scene, 'textures/patterns/fabric3.jpg',  vec3( 400,  0,  0));
+				sk2.rotSpeed = 2*sk1.rotSpeed;
+				sk3.rotSpeed = 1.2*sk2.rotSpeed;
 
 				// sphere
 
@@ -286,11 +172,13 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 				sphere.receiveShadow = true;
 				scene.add( sphere );
 
+				/*
 				// arrow
-
-				arrow = new THREE.ArrowHelper( new THREE.Vector3( 0, 1, 0 ), new THREE.Vector3( 0, 0, 0 ), 50, 0xff0000 );
+				arrow = new THREE.ArrowHelper( new THREE.Vector3( 0, 1, 0 ),
+						  new THREE.Vector3( 0, 0, 0 ), 50, 0xff0000 );
 				arrow.position.set( -200, 0, -200 );
 				// scene.add( arrow );
+				*/
 
 				// ground
 
@@ -359,7 +247,6 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 
 				renderer.gammaInput = true;
 				renderer.gammaOutput = true;
-
 				renderer.shadowMapEnabled = true;
 
 				//
@@ -370,7 +257,6 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 				//
 
 				window.addEventListener( 'resize', onWindowResize, false );
-
 				sphere.visible = !true
 
 			}
@@ -378,71 +264,35 @@ function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
 			//
 
 			function onWindowResize() {
-
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
-
 				renderer.setSize( window.innerWidth, window.innerHeight );
-
 			}
 
 			//
 
 			function animate() {
-
 				requestAnimationFrame( animate );
-
 				var time = Date.now();
-
-				var windMag = windStrength * (Math.cos( time / 7000 ) * 20 + 40);
-				windForce.set( Math.sin( time / 2000 ),
-					       Math.cos( time / 3000 ),
-                                               Math.sin( time / 1000 ) ).normalize().multiplyScalar( windMag );
-				arrow.setLength( windMag );
-				arrow.setDirection( windForce );
-
-				for (var j=0; j<skirts.length; j++) {
-					skirts[j].simulate(time);
-                                }
+				//arrow.setLength( windMag );
+				//arrow.setDirection( SKIRT.windForce );
+				SKIRT.simulate(time);
 				render();
 				stats.update();
-
 			}
 
-			function updateClothGeometry(skirt) {
-				var cgeom = skirt.geometry;
-				var p = skirt.particles;
-				for ( var i = 0, il = p.length; i < il; i ++ ) {
-					cgeom.vertices[ i ].copy( p[ i ].position );
-				}
-
-				cgeom.computeFaceNormals();
-				cgeom.computeVertexNormals();
-				cgeom.normalsNeedUpdate = true;
-				cgeom.verticesNeedUpdate = true;
-			}
 
 			function render() {
-
 				var timer = Date.now() * 0.0002;
-				for (var j=0; j<skirts.length; j++) {
-					updateClothGeometry(skirts[j]);
-                                }
-
 				sphere.position.copy( ballPosition );
-
 				if ( rotateCam ) {
-
 					camera.position.x = Math.cos( timer ) * 1500;
 					camera.position.z = Math.sin( timer ) * 1500;
-
 				}
-
 				camera.lookAt( scene.position );
-
 				renderer.render( scene, camera );
-
 			}
+
 
 		</script>
 	</body>
