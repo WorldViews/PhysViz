@@ -5,6 +5,8 @@ THREE.ImageUtils.crossOrigin = '';
 
 ISPIRAL = {};
 
+ISPIRAL.CRANK_ANGLE = null;
+
 function report(s)
 {
    console.log(s);

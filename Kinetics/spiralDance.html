@@ -148,8 +148,8 @@ function handleYEI(msg) {
          da += 360;
    }
    angle += da;
-//   report("angle: "+angle);
-   CRANK_ANGLE = angle*Math.PI/180;
+  // report("angle: "+angle);
+   SKIRT.CRANK_ANGLE = angle*Math.PI/180;
 }
 
 function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }

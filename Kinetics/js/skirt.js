@@ -375,7 +375,7 @@ function Skirt(w, h, x0, y0) {
                 //this.theta0 = this.rotSpeed*2*Math.PI*dt/1000;
 		this.theta0 = rs*2*Math.PI*dt/1000;
 		if (SKIRT.CRANK_ANGLE != null) {
-                    report("CRANK_ANGLE: "+SKIRT.CRANK_ANGLE);
+                    //report("CRANK_ANGLE: "+SKIRT.CRANK_ANGLE);
 		    this.theta0 = SKIRT.CRANK_ANGLE;
                 }
 		for (i = 0, il = this.pins.length; i < il; i ++) {
