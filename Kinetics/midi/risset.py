@@ -1,18 +1,22 @@
 
 from PVMidi import TrackObj, Note
 
-#t = TrackObj("BluesRhythm1.json")
+def genTrack():
+    t = TrackObj()
+    for i in range(10):
+        t0 = 400*i
+        v1 = 50
+        v2 = 90
+        v3 = 30
+        t.addNote(Note(50, t0,     v1,  25))
+        t.addNote(Note(51, t0+50,  v2,  25))
+        t.addNote(Note(52, t0+200, v2,  50))
+        t.addNote(Note(53, t0+300, v2,  25))
+        t.setMaxTime(t0 + 400)
+    return t
 
-t = TrackObj()
-for i in range(10):
-    t0 = 400*i
-    v1 = 70
-    v2 = 50
-    t.addNote(Note(50, t0,     v1, 50))
-    t.addNote(Note(51, t0+50,  v2, 50))
-    t.addNote(Note(52, t0+200, v2, 50))
-    t.addNote(Note(53, t0+300, v2, 50))
-    t.setMaxTime(t0 + 400)
+t = genTrack()
+#t = TrackObj("BluesRhythm1.json")
 
 t.saveAsJSON("foo.json")
 print "t.maxTime", t.getMaxTime()

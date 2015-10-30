@@ -85,6 +85,10 @@ class TrackObj:
         for note in notes:
             nnote = Note(note.pitch, note.t0+tMax, note.velocity, note.dur)
             self.addNote(nnote)
+        self.tMax = tMax + tobj.getMaxTime()
+
+    def getNumNotes(self):
+        return len(self.allNotes())
 
     def getMinTime(self):
         if not self.events:
@@ -227,11 +231,15 @@ class TrackObj:
             seq.append([t, eventsAtT])
         obj = {'type': 'Sequence',
                'seq': seq}
+        if self.tMax != None:
+            obj['tMax'] = self.tMax
         json.dump(obj, file(path, "w"),indent=4, sort_keys=True)
 
     def loadJSON(self, path):
         print "Loading TrackObj from", path
         obj = json.load(file(path))
+        if 'tMax' in obj:
+            self.tMax = obj['tMax']
         evList = obj['seq']
         for ev in evList:
             t, noteList = ev
