@@ -21,6 +21,7 @@ SKIRT.CRANK_ANGLE = null;
 SKIRT.DAMPING = 0.005;
 SKIRT.DRAG = 1 - SKIRT.DAMPING;
 SKIRT.MASS = 0.1;
+SKIRT.useDiagonals = false;
 SKIRT.restDistance = 25;
 SKIRT.clothRotationSpeed = 0.2; // revolutions per second
 
@@ -125,7 +126,7 @@ Particle.prototype.integrate = function(timesq) {
 
 var diff = new THREE.Vector3();
 
-function satisifyConstrains(p1, p2, distance) {
+function satisfyConstrains(p1, p2, distance) {
     //report("satisfy "+p1.uv+" -- "+p2.uv+"  "+distance);
 	diff.subVectors(p2.position, p1.position);
 	var currentDist = diff.length();
@@ -235,32 +236,37 @@ function Skirt(w, h, x0, y0) {
 	    }
 	}
 
-	//dumpConstraints();
-
 	// While many system uses shear and bend springs,
 	// the relax constrains model seem to be just fine
 	// using structural springs.
 	// Shear
-	// var diagonalDist = Math.sqrt(restDistance * restDistance * 2);
+	if (SKIRT.useDiagonals) {
+	    report("*** Including diagonal terms ***");
+	    var rd2 = restDistance * restDistance;
+	    for (v=0;v<h;v++) {
+	 	for (u=0;u<w;u++) {
+                    var dx = restDistance*rdf(v/h);
+                    var dd = Math.sqrt(rd2 + dx*dx);
+		    constrains.push([
+			 particles[index(u, v)],
+			 particles[index(u+1, v+1)],
+			 dd
+		    ]);
 
+		    constrains.push([
+			 particles[index(u+1, v)],
+			 particles[index(u, v+1)],
+			 dd
+		    ]);
+	 	}
+	    }
+	}
+	else {
+	    report("*** skipping diagonal constraints ***");
+	}
 
-	// for (v=0;v<h;v++) {
-	// 	for (u=0;u<w;u++) {
+	//dumpConstraints();
 
-	// 		constrains.push([
-	// 			particles[index(u, v)],
-	// 			particles[index(u+1, v+1)],
-	// 			diagonalDist
-	// 		]);
-
-	// 		constrains.push([
-	// 			particles[index(u+1, v)],
-	// 			particles[index(u, v+1)],
-	// 			diagonalDist
-	// 		]);
-
-	// 	}
-	// }
 
 
 	this.particles = particles;
@@ -335,7 +341,7 @@ function Skirt(w, h, x0, y0) {
 		il = constrains.length;
 	    for (i = 0; i < il; i ++) {
 		constrain = constrains[i];
-		satisifyConstrains(constrain[0], constrain[1], constrain[2]);
+		satisfyConstrains(constrain[0], constrain[1], constrain[2]);
 	    }
 
 	    // Ball Constrains

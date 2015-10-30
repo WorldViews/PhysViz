@@ -13,9 +13,20 @@ import base64
 class Note:
     def __init__(self, pitch, t0, velocity, dur=None):
         self.pitch = pitch
+        self.t0 = t0
+        self.velocity = velocity
+        self.dur = dur
         self.parts = [[t0,velocity]]
         if dur:
             self.finish(t0+dur)
+
+    def setT0(self, t0):
+        self.t0 = t0
+        self.parts[0][0] = t0
+
+    def setVelocity(self, v):
+        self.velocity = v
+        self.parts[0][1] = v
 
     def getT0(self):
         return self.parts[0][0]
@@ -52,10 +63,97 @@ class Note:
 
             
 class TrackObj:
-    def __init__(self, track=None):
+    def __init__(self, trackOrPath=None):
         self.events = {}
-        if track:
-            self.observeTrack(track)
+        if trackOrPath == None:
+            return
+        if type(trackOrPath) in [type("str"), type(u"str")]:
+            self.loadJSON(trackOrPath)
+        else:
+            self.observeTrack(trackOrPath)
+
+    def merge(self, tobj):
+        """
+        Copy all notes from other track to play in parallel.
+        """
+        self.addNotes(tobj.allNotes())
+
+    def append(self, tobj):
+        tMax = self.getMaxTime()
+        notes = tobj.allNotes()
+        for note in notes:
+            nnote = Note(note.pitch, note.t0+tMax, note.velocity, note.dur)
+            self.addNote(nnote)
+
+    def getMinTime(self):
+        if not self.events:
+            return 0
+        return min(self.events.keys())
+
+    def getMaxTime(self):
+        if not self.events:
+            return 0
+        times = self.events.keys()
+        times.sort()
+        t1 = times[-1]
+        tMax = t1
+        print "t1:",t1
+        for note in self.events[t1]:
+            t = t1 + note.dur
+            tMax = max(tMax, t)
+        return t
+
+    def scalePower(self, s0, s1=None):
+        t0 = self.getMinTime()
+        t1 = self.getMaxTime()
+        dur = t1-t0
+        print "t0:", t0, "  t1:", t1, "   dur:", dur
+        if s1 == None:
+            s1 = s0
+        for note in self.allNotes():
+            t = note.t0
+            f = (t - t0)/float(dur)
+            s = s0 + f*(s1-s0)
+            v = int(note.velocity * s)
+            print "%5d %6.4f %3d -> %3d" % (t, s, note.velocity, v)
+            note.setVelocity(v)
+
+    def rescaleTime(self, s0=1, s1=2, maxTime=None):
+        if maxTime == None:
+            maxTime = self.getMaxTime()
+        maxTime = int(maxTime)
+        j = 0
+        tmap = {}
+        for i in range(maxTime):
+            s = s0 + (s1-s0)*i/(maxTime-1.0)
+            j += 1/s
+            #print "%5d %7.2f %7.2f" % (i, s, j)
+            tmap[i] = int(math.floor(j))
+        return tmap
+
+    def rescaleByTime(self, tmap=None):
+        if tmap == None:
+            tmap = self.rescaleTime()
+        tobj = TrackObj()
+        keys = self.events.keys()
+        keys.sort()
+        for t in keys:
+            nt = tmap[t]
+            for note in self.events[t]:
+                nnote = Note(note.pitch, nt, note.velocity, note.dur)
+                tobj.addNote(nnote)
+        return tobj
+
+    def allNotes(self):
+        notes = []
+        for ev in self.events.values():
+            for note in ev:
+                notes.append(note)
+        return notes
+
+    def addNotes(self, notes):
+        for note in notes:
+            self.addNote(note)
 
     def addNote(self, note):
         t0 = note.getT0()
@@ -123,6 +221,18 @@ class TrackObj:
         obj = {'type': 'Sequence',
                'seq': seq}
         json.dump(obj, file(path, "w"),indent=4, sort_keys=True)
+
+    def loadJSON(self, path):
+        print "Loading TrackObj from", path
+        obj = json.load(file(path))
+        evList = obj['seq']
+        for ev in evList:
+            t, noteList = ev
+            notes = []
+            for n in noteList:
+                note = Note(n[2], n[1], n[3], n[4])
+                notes.append(note)
+            self.events[t] = notes
 
     def dump(self):
         print "%d complete notes" % len(self.notes)
