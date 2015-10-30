@@ -64,6 +64,7 @@ class Note:
             
 class TrackObj:
     def __init__(self, trackOrPath=None):
+        self.tMax = None
         self.events = {}
         if trackOrPath == None:
             return
@@ -90,7 +91,12 @@ class TrackObj:
             return 0
         return min(self.events.keys())
 
+    def setMaxTime(self, tMax):
+        self.tMax = tMax
+
     def getMaxTime(self):
+        if self.tMax != None:
+            return self.tMax
         if not self.events:
             return 0
         times = self.events.keys()
@@ -101,6 +107,7 @@ class TrackObj:
         for note in self.events[t1]:
             t = t1 + note.dur
             tMax = max(tMax, t)
+        self.tMax = tMax
         return t
 
     def scalePower(self, s0, s1=None):

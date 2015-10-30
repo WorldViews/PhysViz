@@ -1,7 +1,19 @@
 
-from PVMidi import TrackObj
+from PVMidi import TrackObj, Note
 
-t = TrackObj("BluesRhythm1.json")
+#t = TrackObj("BluesRhythm1.json")
+
+t = TrackObj()
+for i in range(10):
+    t0 = 400*i
+    v1 = 70
+    v2 = 50
+    t.addNote(Note(50, t0,     v1, 50))
+    t.addNote(Note(51, t0+50,  v2, 50))
+    t.addNote(Note(52, t0+200, v2, 50))
+    t.addNote(Note(53, t0+300, v2, 50))
+    t.setMaxTime(t0 + 400)
+
 t.saveAsJSON("foo.json")
 print "t.maxTime", t.getMaxTime()
 print "=========================================="
@@ -30,6 +42,7 @@ rt.append(rt3)
 rt.append(rt4)
 rt.saveAsJSON("rissetvoice.json")
 
+"""
 rt = TrackObj()
 rt.append(rt4)
 rt.append(rt4)
@@ -41,6 +54,7 @@ rt.merge(rt2)
 rt.merge(rt3)
 rt.merge(rt4)
 rt.saveAsJSON("crazy_risset.json")
+"""
 """
 tmap = t.rescaleTime(1, 2)
 tvals = tmap.keys()
