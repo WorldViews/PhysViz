@@ -10,6 +10,22 @@ from midi.events import *
 
 import base64
 
+class TempoEvent:
+    def __init__(self, t0, bpm, mpqn):
+        self.t0 = t0
+        self.bpm = bpm
+        self.mpqn = mpqn
+        
+    def getT0(self):
+        return self.t0
+
+    def setT0(self, t0):
+        self.t0 = t0
+
+    def toList(self):
+        return ["tempo", self.t0, self.bpm, self.mpqn]
+
+
 class Note:
     def __init__(self, pitch, t0, velocity, dur=None):
         self.pitch = pitch
@@ -47,7 +63,7 @@ class Note:
              "dur": dur,
              "v": v}
         if len(self.parts) != 2:
-            print "Note withless than less than 2 parts"
+            print "Note with other than less than 2 parts"
             d['parts'] = self.parts
         return d
 
@@ -57,15 +73,17 @@ class Note:
         dur = self.parts[-1][0] - t0
         lst = ["note", t0, self.pitch, v, dur]
         if len(self.parts) != 2:
-            print "Note withless than less than 2 parts"
+            print "Note with %d parts" % len(self.parts)
             lst.append(self.parts)
         return lst
 
-            
+
 class TrackObj:
-    def __init__(self, trackOrPath=None):
+    def __init__(self, trackOrPath=None, trackName=None):
         self.tMax = None
+        self.trackName = trackName
         self.events = {}
+        self.instrument = None
         if trackOrPath == None:
             return
         if type(trackOrPath) in [type("str"), type(u"str")]:
@@ -107,7 +125,7 @@ class TrackObj:
         times.sort()
         t1 = times[-1]
         tMax = t1
-        print "t1:",t1
+        #print "t1:",t1
         for note in self.events[t1]:
             t = t1 + note.dur
             tMax = max(tMax, t)
@@ -172,6 +190,9 @@ class TrackObj:
             self.events[t0].append(note)
         else:
             self.events[t0] = [note]
+
+    def addTempoEvent(self, tempoEvent):
+        self.addNote(tempoEvent)
         
     def observeTrack(self, track):
         tn = 0
@@ -179,14 +200,23 @@ class TrackObj:
         for evt in track:
             tick = evt.tick
             tn += tick
+            #print "tn: %s tick: %s evt: %s" % (tn, tick, evt)
             if isinstance(evt, NoteEvent):
                 pitch = evt.pitch
                 v = evt.velocity
                 #print tn, evt.name, evt.pitch, evt.velocity
                 if isinstance(evt, NoteOnEvent):
                     if pitch in openNotes:
-                        openNotes[pitch].extend(tn,v)
+                        if openNotes[pitch].parts[-1] == [tn,v]:
+                            print "*** ignoring redundant NoteOn ****"
+                        else:
+                            openNotes[pitch].extend(tn,v)
+                            if v != 0:
+                                print "*** extending note", openNotes[pitch].parts
                     else:
+                        if v == 0:
+                            print "**** Warning ignoring note with velocity 0 ****"
+                            continue
                         openNotes[pitch] = Note(pitch, tn, v)
                     if v == 0:
                         note = openNotes[pitch]
@@ -206,19 +236,41 @@ class TrackObj:
                     print "Unexpected note type", evt.name
             elif isinstance(evt, TrackNameEvent):
                 print "TrackName", evt.text
+                self.trackName = evt.text
+            elif isinstance(evt, PitchWheelEvent):
+                #print "PitchWheel", evt.pitch
+                pass
+            elif isinstance(evt, ProgramChangeEvent):
+                print "ProgramChange", evt.value
+                if self.instrument != None and self.instrument != evt.value:
+                    print "**** Changing instrument within track"
+                self.instrument = evt.value
+            elif isinstance(evt, TimeSignatureEvent):
+                n = evt.numerator
+                d = evt.denominator
+                met = evt.metronome
+                s30 = evt.thirtyseconds
+                print "TimeSignature %s/%s met: %s s30: %s" % \
+                      (n,d, met, s30)
+            elif isinstance(evt, SetTempoEvent):
+                bpm = evt.bpm
+                mpqn = evt.mpqn
+                #print "TempoEvent bpm: %s  mpqn: %s" % (bpm, mpqn)
+                self.addTempoEvent(TempoEvent(tn, bpm, mpqn))
             elif isinstance(evt, EndOfTrackEvent):
                 print "End of track"
-                for pitch in openNotes:
-                    note = openNotes[pitch]
-                    note.finish(tn)
-                    self.addNote(note)
             elif isinstance(evt, ControlChangeEvent):
                 pass
             else:
                 print evt.name
+        #
+        # Now must close any open notes
+        for pitch in openNotes:
+            note = openNotes[pitch]
+            note.finish(tn)
+            self.addNote(note)
 
-    def saveAsJSON(self, path):
-        print "Saving TrackObj to", path
+    def toDict(self):
         seq = []
         keys = self.events.keys()
         keys.sort()
@@ -226,15 +278,22 @@ class TrackObj:
             eventsAtT = []
             evts = self.events[t]
             for evt in evts:
-#                eventsAtT.append(evt.toList())
                 eventsAtT.append(evt.toList())
             seq.append([t, eventsAtT])
-        obj = {'type': 'Sequence',
+        obj = {'type': 'TrackObj',
                'seq': seq}
+        if self.instrument != None:
+            obj['instrument'] = self.instrument
+        if self.trackName:
+            obj['trackName'] = self.trackName
         if self.tMax != None:
             obj['tMax'] = self.tMax
-        json.dump(obj, file(path, "w"),indent=4, sort_keys=True)
+        return obj
 
+    def saveAsJSON(self, path):
+        print "Saving TrackObj to", path
+        json.dump(self.toDict(), file(path, "w"),indent=4, sort_keys=True)
+        
     def loadJSON(self, path):
         print "Loading TrackObj from", path
         obj = json.load(file(path))
@@ -257,6 +316,38 @@ class TrackObj:
             if i >= 10:
                 break
 
+class MidiObj:
+    def __init__(self, path=None):
+        self.tracks = []
+        if path:
+            self.load(path)
+
+    def load(self, midiPath):
+        pattern = midi.read_midifile(midiPath)
+        i = 0;
+        print type(pattern)
+        ntracks = len(pattern)
+        print "ntracks:", ntracks
+        for track in pattern:
+            i += 1
+            trackName = "Track%d" % i
+            #if ntracks > 1:
+            #    jpath = path.replace(".mid", "%d.json" % i)
+            print trackName
+            self.addTrack(TrackObj(track, trackName))
+
+    def addTrack(self, trackObj):
+        self.tracks.append(trackObj)
+
+    def toDict(self):
+        return {'type': 'MidiObj',
+                'tracks': map(TrackObj.toDict, self.tracks)}
+
+    def saveAsJSON(self, jpath):
+        print "Save MidiObj to", jpath
+        json.dump(self.toDict(), file(jpath, "w"), indent=4)
+
+        
 
 class ShepVoice:
     def __init__(self, noctaves=4, i0=0, dur=1):
@@ -281,7 +372,9 @@ class ShepVoice:
 
         
 def genShepard(nvoices, noctaves):
-    tobj = TrackObj()
+    print "="*60
+    print "Generating Shepard Tones"
+    tobj = TrackObj(trackName="Track1")
     for v in range(nvoices):
         sv = ShepVoice(noctaves, 12*v)
         for i in range(200):
@@ -289,14 +382,14 @@ def genShepard(nvoices, noctaves):
             if note:
                 #print i, note.toList()
                 tobj.addNote(note)
-            else:
-                print i, None
-    tobj.saveAsJSON("shepard.json")
+    midiObj = MidiObj()
+    midiObj.addTrack(tobj)
+    midiObj.saveAsJSON("shepard.json")
 #    sobj = SeqObj(tobj)
 #    sobj.saveAsJSON("shepard.seq.json")
 
 
-def convertToJSON(path, jpath=None):
+def XconvertToJSON(path, jpath=None):
     if not jpath:
         jpath = path.replace(".mid", ".json")
     pattern = midi.read_midifile(path)
@@ -312,9 +405,18 @@ def convertToJSON(path, jpath=None):
         tobj = TrackObj(track)
         #tobj.dump()
         tobj.saveAsJSON(jpath)
+        """
         for evt in track:
             print ".....", evt
+        """
         print "-------"
+
+
+def convertToJSON(path, jpath=None):
+    if not jpath:
+        jpath = path.replace(".mid", ".json")
+    midiObj = MidiObj(path)
+    midiObj.saveAsJSON(jpath)
 
 """
 Convert one of the base64 coded data urls found
@@ -328,26 +430,27 @@ def convert(b64path, mpath):
     file(mpath,"wb").write(mid)
 
 def dump(path):
+    print "="*64
+    print "path:", path
     if path.endswith(".mb64"):
         mpath = path.replace(".mb64", ".mid")
         convert(path, mpath)
         path = mpath
     if 1:
         convertToJSON(path)
-    else:
+    if 0:
         pattern = midi.read_midifile(path)
         print pattern
 
 
 def run():
+    dump("minute_waltz.mid")
     dump("jukebox.mid")
-    return
     dump("BluesRhythm1.mid")
     dump("beethovenSym5m1.mb64")
-    genShepard(5, 5)
-    dump("minute_waltz.mid")
     dump("chopin69.mb64")
     dump("wtc0.mb64")
+    genShepard(5, 5)
 
 if __name__ == '__main__':
     run()
