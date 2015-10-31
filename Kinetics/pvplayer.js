@@ -3,7 +3,6 @@ var PLAYER = {};
 PLAYER.ticksPerBeat = 500;
 PLAYER.delay0 = 1;
 PLAYER.isPlaying = false;
-PLAYER.isAsync = false;
 PLAYER.distPerSec = 1.2;
 PLAYER.prevClockTime = null;
 PLAYER.graphics = null;
@@ -14,22 +13,43 @@ PLAYER.midiObj = null;
 PLAYER.loadedInstruments = {};
 //PLAYER.tracks = {}
 
-PLAYER.stopPlaying = function ()
-{
-   report("Stop Playing");
-   //   MIDI.stopAllNotes();
-   PLAYER.isPlaying = false;
-}
-
 PLAYER.startPlaying = function()
 {
     if (PLAYER.midiObj == null) {
 	report("No midi loaded");
 	return;
     }
+    $("#midiTogglePlaying").text("Pause");
     PLAYER.playSync(PLAYER.midiObj);
 }
 
+PLAYER.pausePlaying = function()
+{
+    PLAYER.isPlaying = false;
+    $("#midiTogglePlaying").text("Play");
+}
+
+PLAYER.rewind = function()
+{
+    PLAYER.i = 0;
+}
+
+PLAYER.stopPlaying = function ()
+{
+   report("Stop Playing");
+   PLAYER.isPlaying = false;
+    $("#midiTogglePlaying").text("Play");
+}
+
+
+PLAYER.togglePlaying = function()
+{   if ($("#midiTogglePlaying").text() == "Play") {
+	PLAYER.startPlaying();
+    }
+    else {
+	PLAYER.pausePlaying();
+    }
+}
 
 PLAYER.playMelody = function(name)
 {
@@ -43,10 +63,7 @@ PLAYER.fmt = function(t) { return ""+Math.floor(t*1000)/1000; }
 PLAYER.playMidiObj = function(obj)
 {
     PLAYER.midiObj = processMidiObj(obj);
-    if (PLAYER.isAsync)
-        PLAYER.playAsync(PLAYER.midiObj);
-    else
-        PLAYER.playSync(PLAYER.midiObj);
+    PLAYER.startPlaying();
     if (PLAYER.scene) {
         report("***** adding Note Graphics ******");
         PLAYER.addNoteGraphics(PLAYER.scene, PLAYER.midiObj);
@@ -104,8 +121,101 @@ function processMidiObj(midiObj)
     }
     midiObj.seq = seq;
     PLAYER.setupChannels();
+    try {
+	PLAYER.setupTrackInfo();
+    }
+    catch (e) {
+	report("err: "+e);
+    }
     return midiObj;
     //    return midiObj.tracks[ntracks-1];
+}
+
+function checkboxChanged(e)
+{
+    var id = $(this).attr('id');
+    var ch = id.slice(4);
+    report("id: "+id);
+    var val = $(this).is(":checked");
+    //var val = $("#"+mute_id).is(":checked");
+    val = eval(val);
+    report("mute_id: "+id+" ch: "+ch+"  val: "+val);
+    PLAYER.muted[ch] = val;
+}
+
+function instrumentChanged(e)
+{
+    var id = $(this).attr('id');
+    var ch = id.slice(6);
+    var val = $(this).val();
+    val = eval(val);
+    report("ch: "+ch+"  val: "+val);
+    PLAYER.setupChannel(ch, val);
+}
+
+PLAYER.setupMidiControlDiv = function()
+{
+    report("setupMidiControlDiv");
+    if ($("#midiControl").length == 0) {
+	report("*** no midiControlDiv found ****");
+    }
+    str = '<div id="midiTrackInfo">\n' +
+          'No Tracks Loaded<br>\n' +
+          '</div>\n'  +
+          '<button onclick="PLAYER.rewind()">|&#60; </button>\n' +
+          '<button id="midiTogglePlaying" onclick="PLAYER.togglePlaying()">Play</button>\n';
+    $("#midiControl").html(str);
+}
+
+PLAYER.setupTrackInfo = function()
+{
+    report("showTrackInfo");
+    var d = $("#midiTrackInfo");
+    if (d.length == 0) {
+	report("**** No track info div found *****");
+	PLAYER.setupMidiControlDiv();
+    }
+    d.html("");
+    for (var ch in PLAYER.trackChannels) {
+        var mute_id = "mute"+ch;
+        var select_id = "select"+ch;
+	var s = "track: "+ch+"&nbsp";
+	s += 'mute: <input type="checkbox" id="MUTE_ID">\n';
+        s += '&nbsp;&nbsp;&nbsp;';
+        s += 'instrument: <select id="SELECT_ID"></select>\n'
+	s += '<br>\n';
+	s = s.replace("MUTE_ID", mute_id);
+	s = s.replace("SELECT_ID", select_id);
+	d.append(s);
+        var cb = $("#"+mute_id);
+	cb.change(checkboxChanged)
+        /*
+	cb.change(function() {
+                report("id: "+$(this).attr('id'));
+		var val = $(this).is(":checked");
+		//var val = $("#"+mute_id).is(":checked");
+		val = eval(val);
+		report("mute_id: "+mute_id+" ch: "+ch+"  val: "+val);
+		PLAYER.muted[ch] = val;
+	    });
+	*/
+        var sel = $("#"+select_id);
+        for (var i=0; i<128; i++) {
+            var instObj = MIDI.GM.byId[i];
+	    var instName = (i+1)+" "+instObj.name;
+            sel.append($('<option>', { value: i, text: instName}));
+	}
+	sel.val(PLAYER.instruments[ch]);
+        sel.change(instrumentChanged);
+        /*
+        sel.change(function() {
+		var val = $(this).val();
+		val = eval(val);
+		report("ch: "+ch+"  val: "+val);
+		PLAYER.setupChannel(ch, val);
+	    });
+	*/
+    }
 }
 
 /*
@@ -138,6 +248,7 @@ PLAYER.playNextStep = function()
    if (PLAYER.i >= PLAYER.events.length) {
       report("FInished playing");
       PLAYER.isPlaying = false;
+      PLAYER.stopPlaying();
       return;
    }
    var t1 = PLAYER.events[PLAYER.i][0];
@@ -379,3 +490,8 @@ PLAYER.update = function()
     //report("translating graphic by "+dx);
     PLAYER.graphics.position.x -= dx;
 }
+
+
+$(document).ready( function() {
+    PLAYER.setupTrackInfo();
+});

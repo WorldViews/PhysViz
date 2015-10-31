@@ -19,6 +19,7 @@
         }, 
         {
             "type": "TrackObj", 
+            "instrument": 127,
             "trackName": "Track2", 
             "seq": [
                 [

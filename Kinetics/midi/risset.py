@@ -1,5 +1,10 @@
 
-from PVMidi import TrackObj, Note
+from PVMidi import TrackObj, MidiObj, Note
+
+def save(tObj, path):
+    mObj = MidiObj()
+    mObj.addTrack(tObj)
+    mObj.saveAsJSON(path)
 
 def genTrack():
     t = TrackObj()
@@ -24,27 +29,27 @@ print "=========================================="
 print "1_2"
 rt1 = t.rescaleByTime(t.rescaleTime(0.25, 0.5))
 rt1.scalePower(0, 0.3)
-rt1.saveAsJSON("risset0.25_0.5.json")
+save(rt1, "risset0.25_0.5.json")
 print "=========================================="
 
 rt2 = t.rescaleByTime(t.rescaleTime(0.5, 1))
 rt2.scalePower(0.3, 1)
-rt2.saveAsJSON("risset0.5_1.json")
+save(rt2, "risset0.5_1.json")
 
 rt3 = t.rescaleByTime(t.rescaleTime(1, 2))
 rt3.scalePower(1, 0.3)
-rt3.saveAsJSON("risset1_2.json")
+save(rt3, "risset1_2.json")
 
 rt4 = t.rescaleByTime(t.rescaleTime(2, 4))
 rt4.scalePower(0.3, 0)
-rt4.saveAsJSON("risset2_4.json")
+save(rt4, "risset2_4.json")
 
-rt = TrackObj()
-rt.append(rt1)
-rt.append(rt2)
-rt.append(rt3)
-rt.append(rt4)
-rt.saveAsJSON("rissetvoice.json")
+rv = TrackObj()
+rv.append(rt1)
+rv.append(rt2)
+rv.append(rt3)
+rv.append(rt4)
+save(rv, "rissetvoice.json")
 
 """
 rt = TrackObj()

@@ -29,7 +29,7 @@
 	<script src="./wmb/dom_request_script.js"></script>
 	<!-- includes -->
 	<script src="./wmb/timer.js"></script>
-	<script src="pvplayer2.js"></script>
+	<script src="pvplayer.js"></script>
 	<!-- font -->
 <script>
 playMelody = PLAYER.playMelody;
@@ -43,20 +43,13 @@ playMelody = PLAYER.playMelody;
    &nbsp;
    <input id="reset" type="button" value="reset">
    <div id="params" hidden>
-     <div id="trackInfo">
-     foo<br>
+     <div id="midiControl"  style="border-style: solid; border-width: 2px;">
+     <div id="midiTrackInfo">
+     No Tracks Loaded<br>
      </div>
-     <button onclick='PLAYER.loadInstrument("violin")'>Violin</button>
-     <button onclick='PLAYER.loadInstrument("choir_aahs")'>Choir</button>
-     <button onclick='PLAYER.loadInstrument(9)'>9 Celesta</button>
-     <button onclick='PLAYER.loadInstrument(20)'>20 Church Organ</button>
-     <button onclick='PLAYER.loadInstrument("acoustic_grand_piano")'>Piano</button>
-     <button onclick='PLAYER.loadInstrument("harpsichord")'>Harpsichord</button>
-     <button onclick='PLAYER.loadInstrument("voice_oohs")'>Voice</button>
-     <button onclick='PLAYER.loadInstrument("steel_drums")'>Steel Drums</button>
-     <button onclick='PLAYER.loadInstrument("synth_drum")'>Synth Drum</button>
-     <button onclick='PLAYER.loadInstrument("paradiddle")'>Paradiddle</button>
-     <button onclick='PLAYER.loadInstrument("pad_3_polysynth")'>Pad Polysynth</button>
+     <button onclick='PLAYER.rewind()'>|&#60; </button>
+     <button id="midiTogglePlaying" onclick='PLAYER.togglePlaying()'>Play</button>
+     </div id="midiControl">
 <p>
      <button onclick='playMelody("chopin69")'>Play Chopin69</button>
      <button onclick='playMelody("wtc0")'>Play WTC0</button>
@@ -74,9 +67,8 @@ playMelody = PLAYER.playMelody;
      <button onclick='playMelody("risset2_4x2")'>risset2_4x2</button>
      <button onclick='playMelody("rissetvoice")'>risset v1</button>
      <button onclick='playMelody("crazy_risset")'>crazy_risset</button>
+     <button onclick='playMelody("short")'>short</button>
 <p>
-     <button onclick='PLAYER.stopPlaying()'>Stop</button>
-     <button onclick='PLAYER.startPlaying()'>Start</button>
    </div>
 </div>
 <script src="barberMidi.js"></script>
