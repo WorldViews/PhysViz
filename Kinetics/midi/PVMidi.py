@@ -349,46 +349,6 @@ class MidiObj:
 
         
 
-class ShepVoice:
-    def __init__(self, noctaves=4, i0=0, dur=1):
-        self.noctaves = noctaves
-        self.nsteps = 12*noctaves
-        self.low = 21
-        self.high = self.low + self.nsteps
-        self.i0 = i0
-        self.dur = dur
-        self.ticksPerBeat = 1000
-
-    def getNote(self, i):
-        step = (i - self.i0) % self.nsteps
-        p = self.low + step
-        f = (p-self.low)/float(self.nsteps - 1)
-        a = int(120 * math.sin(f*math.pi))
-        if a == 0:
-            return 0, None
-        tOn = i*self.ticksPerBeat
-        tOff = (i+self.dur)*self.ticksPerBeat
-        return tOn, Note(p, tOn, a, self.dur*self.ticksPerBeat)
-
-        
-def genShepard(nvoices, noctaves):
-    print "="*60
-    print "Generating Shepard Tones"
-    tobj = TrackObj(trackName="Track1")
-    for v in range(nvoices):
-        sv = ShepVoice(noctaves, 12*v)
-        for i in range(200):
-            tOn, note = sv.getNote(i)
-            if note:
-                #print i, note.toList()
-                tobj.addNote(note)
-    midiObj = MidiObj()
-    midiObj.addTrack(tobj)
-    midiObj.saveAsJSON("shepard.json")
-#    sobj = SeqObj(tobj)
-#    sobj.saveAsJSON("shepard.seq.json")
-
-
 def XconvertToJSON(path, jpath=None):
     if not jpath:
         jpath = path.replace(".mid", ".json")
@@ -450,7 +410,6 @@ def run():
     dump("beethovenSym5m1.mb64")
     dump("chopin69.mb64")
     dump("wtc0.mb64")
-    genShepard(5, 5)
 
 if __name__ == '__main__':
     run()
