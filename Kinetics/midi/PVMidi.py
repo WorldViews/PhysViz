@@ -202,6 +202,9 @@ class TrackObj:
             tn += tick
             #print "tn: %s tick: %s evt: %s" % (tn, tick, evt)
             if isinstance(evt, NoteEvent):
+                ch = evt.channel
+                if ch != 0:
+                    print "ch:", ch
                 pitch = evt.pitch
                 v = evt.velocity
                 #print tn, evt.name, evt.pitch, evt.velocity
