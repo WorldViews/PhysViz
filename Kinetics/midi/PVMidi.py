@@ -2,6 +2,7 @@
 some utilities for dealing with midi
 This uses python package python-midi
 """
+import traceback
 import math
 import json
 import midi
@@ -402,6 +403,21 @@ def dump(path):
         pattern = midi.read_midifile(path)
         print pattern
 
+def playMelody(name):
+    try:
+        playMelody_(name)
+    except:
+        traceback.print_exc()
+
+def playMelody_(name):
+    import websocket
+    #ws = websocket.create_connection("ws://echo.websocket.org/")
+    ws = websocket.create_connection("ws://localhost:8100/")
+    msg = {'msgType': 'midi.play', 'name': name}
+    jstr = json.dumps(msg)
+    ws.send(jstr)
+    result = ws.recv()
+    print "result"
 
 def run():
     dump("minute_waltz.mid")
