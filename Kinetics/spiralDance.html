@@ -120,7 +120,8 @@ var prev_a = null;
 WS = GetWebSock({'motion': handleMotion,
                  'YEI': handleYEI } );
 
-var myAnim = new ANIM.Animation();
+var myAnim = new ANIM.Animation("myAnim1");
+myAnim.activate();
 
 function handleMotion(msg)
 {
@@ -215,7 +216,8 @@ var scene;
 
 				scene = new THREE.Scene();
 
-				//scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 ); //NOFOG
+				scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 ); //NOFOG
+				//scene.fog = new THREE.Fog( 0xcce0ff, 500, 50000 ); //NOFOG
 
 				// camera
 
@@ -316,7 +318,7 @@ var scene;
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-				//renderer.setClearColor( scene.fog.color ); //NOFOG
+				renderer.setClearColor( scene.fog.color ); //NOFOG
 
 				container.appendChild( renderer.domElement );
 
@@ -399,8 +401,8 @@ var scene;
                                 }
 	       
 				renderer.render( scene, camera );
-		                if (myAnim) {
-                                   myAnim.update();
+		                if (ANIM) {
+		                   ANIM.update();
                                 }
                                 if (controls) {
                                    controls.update();

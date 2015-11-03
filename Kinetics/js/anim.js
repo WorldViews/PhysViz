@@ -5,20 +5,159 @@ ANIM.viewNames = [];
 ANIM.views = {};
 ANIM.idx = 0;
 ANIM.bookmarksURL_ = "/Kinetics/bookmarks.json";
+ANIM.activeAnimations = [];
 
-ANIM.Animation = function()
+// ANIM.Interpolator is like a base class.  Each one
+// should have
+// lowVal, highVal, targets
+
+//Untested...
+ANIM.Vector3Interpolator = function(p0, p1, target)
 {
+    this.p0 = p0;
+    this.p1 = p1;
+    this.range = 1.0;
+    this.target = target;
+
+    this.setVal = function(s) {
+	report("setVal "+s);
+	var f = s/this.range;
+	target.lerpVectors(p0, p1, f);
+    }
+    //    P.camera.updateProjectionMatrix();
+}
+
+// THis version uses linear interpolation or rotations, which is not
+// really correct
+ANIM.ViewInterpolatorLerp = function(p0, r0, p1, r1, camera)
+{
+    report("ViewInterpolator p0:"+JSON.stringify(p0)+" p1: "+JSON.stringify(p1));
+    this.p0 = p0;
+    this.r0 = new THREE.Vector3(r0.x, r0.y, r0.z);
+    this.p1 = p1;
+    this.r1 = new THREE.Vector3(r1.x, r1.y, r1.z);
+    this.p = new THREE.Vector3(0,0,0);
+    this.r = new THREE.Vector3(0,0,0);
+    this.camera = camera;
+    this.range = 1.0;
+    this.targetP;
+    this.targetR;
+
+    this.setVal = function(s) {
+	report("setVal "+s);
+	var f = s/this.range;
+        this.p.lerpVectors(this.p0, this.p1, f);
+	report("p: "+JSON.stringify(this.p));
+	camera.position.x = this.p.x;
+	camera.position.y = this.p.y;
+	camera.position.z = this.p.z;
+	this.r.lerpVectors(this.r0, this.r1, f);
+	report("r: "+JSON.stringify(this.r));
+	camera.rotation.x = this.r.x;
+	camera.rotation.y = this.r.y;
+	camera.rotation.z = this.r.z;
+    }
+    //    P.camera.updateProjectionMatrix();
+}
+
+// THis version uses linear interpolation or rotations, which is not
+// really correct
+ANIM.ViewInterpolator = function(p0, r0, p1, r1, camera)
+{
+    report("ViewInterpolator p0:"+JSON.stringify(p0)+" p1: "+JSON.stringify(p1));
+    this.p0 = p0;
+    this.q0 = new THREE.Quaternion().setFromEuler(new THREE.Euler().setFromVector3(r0));
+    this.p1 = p1;
+    this.q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler().setFromVector3(r1));
+    this.p = new THREE.Vector3(0,0,0);
+    this.q = new THREE.Quaternion();
+    this.camera = camera;
+    this.range = 1.0;
+    this.targetP;
+    this.targetR;
+
+    this.setVal = function(s) {
+	report("setVal "+s);
+	var f = s/this.range;
+        this.p.lerpVectors(this.p0, this.p1, f);
+	report("p: "+JSON.stringify(this.p));
+	camera.position.x = this.p.x;
+	camera.position.y = this.p.y;
+	camera.position.z = this.p.z;
+	Quaternion.slerp(this.q0, this.q1, this.q, f);
+	report("q: "+JSON.stringify(this.q));
+	camera.rotation.setFromQuaternion(this.q)
+    }
+    //    P.camera.updateProjectionMatrix();
+}
+
+ANIM.Animation = function(name, dur, interpolator)
+{
+    if (!name)
+	name = "anon";
+    if (dur == null)
+	dur = 1;
+    this.name = name;
     this.running = false;
     this.t0 = 0;
-    this.t1 = 1;
+    this.t1 = dur;
+    this.interpolators = []
+    if (interpolator)
+	this.interpolators.push(interpolator);
 
     this.playTime = 0;
 
     function update() {
-	var t = Date.now()/1000;
-	//report("ANIM run "+t+" update");
+	if (!this.running) {
+	    report("*** anim "+this.name+" updated but not running");
+	    this.deactivate();
+	    return;
+	}
+	var ct = Date.now()/1000;
+	var dt = ct - this.lastClockTime;
+	var pt = this.playTime + dt;
+	this.lastClockTime = ct;
+	this.playTime = pt;
+	report("ANIM run "+pt+" update");
+	var dur = this.t1-this.t0;
+	var f = pt/dur;
+	for (var i=0; i<this.interpolators.length; i++) {
+	    try {
+		this.interpolators[i].setVal(f);
+	    }
+	    catch (e) {
+		report("error: "+e);
+	    }
+	}
+	if (this.playTime >= this.t1) {
+	    report("anim "+this.name+" finished!!");
+	    this.deactivate();
+	}
     }
     this.update = update;
+
+    this.activate = function() {
+	this.playTime = 0;
+	this.lastClockTime = Date.now()/1000.0;
+	this.running = true;
+	ANIM.activeAnimations.push(this);
+    };
+
+    this.deactivate = function() {
+	this.running = false;
+	var i = ANIM.activeAnimations.indexOf(this);
+	if (i >= 0) {
+	    ANIM.activeAnimations.splice(i,1);
+	}
+    }
+}
+
+ANIM.update = function()
+{
+    for (var i = ANIM.activeAnimations.length-1; i >= 0; i--) {
+	var anim = ANIM.activeAnimations[i];
+	anim.update();
+    }
 }
 
 ANIM.bookmarkView = function(name)
@@ -80,8 +219,11 @@ ANIM.uploadBookmarks = function()
 	    report("Succeeded at upload")}, "json");
 }
 
-ANIM.gotoView = function(name)
+
+ANIM.gotoView = function(name, dur)
 {
+    if (dur == null)
+	dur = 1;
     report("gotoView "+name);
     if (!name) {
         ANIM.idx++;
@@ -95,6 +237,17 @@ ANIM.gotoView = function(name)
     }
     report("pos: "+view.position);
     report("rot: "+view.rotation);
+    if (dur > 0) {
+        var c = P.camera;
+	var pos0 = P.camera.position.clone();
+	var pos1 = view.position;
+        var interp = new ANIM.ViewInterpolator(pos0, c.rotation.clone(),
+					       view.position, view.rotation, c);
+	var anim = new ANIM.Animation("goto"+name, dur, interp);
+	anim.activate();
+	return;
+    }
+
     if (view.position) {
        //P.camera.position = view.position;
        P.camera.position.x = view.position.x;
