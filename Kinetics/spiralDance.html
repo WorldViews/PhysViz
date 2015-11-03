@@ -40,6 +40,8 @@
    Controls: <input id="showParams" type="checkbox">
    &nbsp;
    <input id="reset" type="button" value="reset">
+   <input id="markViewpoint" type="button" value="mark">
+   <input id="nextViewpoint" type="button" value="next">
    <div id="params" hidden>
        <div id="midiControl">
        </div>
@@ -90,6 +92,7 @@
 	<script src="pvplayer.js"></script>
 <!-- End of midi scripts -->
 <script src="paramsGUI.js"></script>
+<script src="js/anim.js"></script>
 <script>
 playMelody = PLAYER.playMelody;
 stopPlaying = PLAYER.stopPlaying;
@@ -116,6 +119,8 @@ var prev_a = null;
 
 WS = GetWebSock({'motion': handleMotion,
                  'YEI': handleYEI } );
+
+var myAnim = new ANIM.Animation();
 
 function handleMotion(msg)
 {
@@ -210,7 +215,7 @@ var scene;
 
 				scene = new THREE.Scene();
 
-				scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 );
+				//scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 ); //NOFOG
 
 				// camera
 
@@ -218,6 +223,7 @@ var scene;
 				camera.position.y = 50;
 				camera.position.z = 1500;
 				scene.add( camera );
+	                        P.camera = camera;
 
 				// lights
 
@@ -310,7 +316,7 @@ var scene;
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.setClearColor( scene.fog.color );
+				//renderer.setClearColor( scene.fog.color ); //NOFOG
 
 				container.appendChild( renderer.domElement );
 
@@ -393,6 +399,9 @@ var scene;
                                 }
 	       
 				renderer.render( scene, camera );
+		                if (myAnim) {
+                                   myAnim.update();
+                                }
                                 if (controls) {
                                    controls.update();
                                 }

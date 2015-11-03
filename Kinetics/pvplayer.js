@@ -4,7 +4,7 @@ PLAYER.ticksPerBeat = 500;
 //PLAYER.delay0 = 1;
 PLAYER.delay0 = 0.0;
 PLAYER.isPlaying = false;
-PLAYER.distPerSec = 1.2;
+PLAYER.distPerSec = 0.2;
 PLAYER.graphics = null;
 PLAYER.scene = null;
 PLAYER.graphicsScale = null;
@@ -15,6 +15,7 @@ PLAYER.lastEventPlayTime = 0;
 PLAYER.lastEventClockTime = 0;
 PLAYER.seqNum = 0;
 PLAYER.graphicsX0 = -8;
+PLAYER.graphicsSpiral = true;
 
 //PLAYER.tracks = {}
 
@@ -123,13 +124,16 @@ function processMidiObj(midiObj)
     }
     seqTimes.sort(function(a,b) { return a-b; });
     var seq = []
+    var maxTime = 0;
     for (var i=0; i<seqTimes.length; i++) {
         var t = seqTimes[i];
 	var evGroup = seqEvents[t];
 	seq.push([t, evGroup[1]]);
+        maxTime = t;//
 	//report("t: "+ t+ " nevents: "+evGroup.length);
     }
     midiObj.seq = seq;
+    midiObj.duration = maxTime/PLAYER.ticksPerBeat;
     PLAYER.setupChannels();
     try {
 	PLAYER.setupTrackInfo();
@@ -336,7 +340,7 @@ function OLDloadInstrument(instr, successFn)
 }
 
 
-PLAYER.getTimeGraphic = function()
+PLAYER.getTimeGraphicR = function()
 {
     var y0 = -6;
     var x0 = PLAYER.graphicsX0;
@@ -353,7 +357,7 @@ PLAYER.getTimeGraphic = function()
     return g;
 }
 
-PLAYER.getNoteGraphic = function(t, dur, pitch, material)
+PLAYER.getNoteGraphicR = function(t, dur, pitch, material)
 {
     var y0 = -6;
     var x0 = 0;//PLAYER.graphicsX0;
@@ -371,6 +375,54 @@ PLAYER.getNoteGraphic = function(t, dur, pitch, material)
     return ng;
 }
 
+PLAYER.getTimeGraphicS = function()
+{
+    var tDur = PLAYER.midiObj.duration;
+    var c = tDur*PLAYER.distPerSec;
+    var r = c / (2*Math.PI);
+    var y0 = 4;
+    var x0 = 0;//PLAYER.graphicsX0;
+    var z0 = 0;
+    var w = 10;
+    var material = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
+    //var geometry = new THREE.BoxGeometry( 0.001, 300, w );
+    var geometry = new THREE.BoxGeometry( 0.01, 300, 2 );
+    var g = new THREE.Mesh( geometry, material );
+    g._mat = material;
+    material.transparent = true;
+    material.opacity = .3;
+    g.position.x = x0;
+    g.position.y = y0;
+    g.position.z = z0 + r;
+    report("**** getTimeGraphicS "+JSON.stringify(g.position));
+    return g;
+}
+
+PLAYER.getNoteGraphicS = function(t, dur, pitch, material)
+{
+    var tDur = PLAYER.midiObj.duration;
+    var c = tDur*PLAYER.distPerSec;
+    var r = c / (2*Math.PI);
+    var y0 = 4;
+    var x0 = 0;//PLAYER.graphicsX0;
+    var z0 = 0;
+    var gap = .2;
+    var w = .1;
+    var h = PLAYER.distPerSec*dur;
+    material.color.setHSL((pitch%12)/12.0, .6, .5);
+    var geometry = new THREE.BoxGeometry( h, w, w );
+    var ng = new THREE.Mesh( geometry, material );
+    ng._mat = material;
+    var a = 2*Math.PI*(t+dur/2)/tDur;
+    var p = ng.position;
+    p.x = x0 + r*Math.sin(a);
+    p.z = z0 + r*Math.cos(a);
+    p.y = y0 + gap * pitch;
+    //report("getNoteGraphicS a: "+a+"  r: "+r+"  x: "+p.x+"  y: "+p.y+"  z: "+p.z);
+    ng.rotation.y = a;
+    return ng;
+}
+
 PLAYER.graphicsHandleEventGroup = function(gObj, eventGroup)
 {
     var t0 = eventGroup[0];
@@ -385,7 +437,11 @@ PLAYER.graphicsHandleEventGroup = function(gObj, eventGroup)
 	var t = t0/PLAYER.ticksPerBeat;
 	//report(t0+" graphic for note pitch: "+pitch+" v:"+v+" dur: "+dur);
         var material = new THREE.MeshPhongMaterial( { color: 0x00dddd } );
-	var noteGraphic = PLAYER.getNoteGraphic(t, dur, pitch, material);
+	var noteGraphic;
+	if (PLAYER.graphicsSpiral)
+           noteGraphic = PLAYER.getNoteGraphicS(t, dur, pitch, material);
+        else
+           noteGraphic = PLAYER.getNoteGraphicR(t, dur, pitch, material);
         gObj.add( noteGraphic );
     }
 }
@@ -394,27 +450,32 @@ PLAYER.addNoteGraphics = function(scene, midiTrack)
 {
     if (PLAYER.graphics) {
         scene.remove(PLAYER.graphics);
-	scene.remove(PLAYER.timeGraphic);
     }
 
     report("Adding note graphics...");
     var events = midiTrack.seq;
-    var gObj = new THREE.Object3D();
-    PLAYER.timeGraphic = PLAYER.getTimeGraphic();
+    PLAYER.graphics = new THREE.Object3D();
+    PLAYER.notesGraphic = new THREE.Object3D();
+    PLAYER.graphics.add(PLAYER.notesGraphic);
+    if (PLAYER.graphicsSpiral)
+	PLAYER.timeGraphic = PLAYER.getTimeGraphicS();
+    else
+	PLAYER.timeGraphic = PLAYER.getTimeGraphicR();
     for (var i=0; i<events.length; i++) {
-	PLAYER.graphicsHandleEventGroup(gObj, events[i]);
+	PLAYER.graphicsHandleEventGroup(PLAYER.notesGraphic, events[i]);
     }
+    PLAYER.graphics.add(PLAYER.timeGraphic)
     if (PLAYER.graphicsScale) {
         var s = PLAYER.graphicsScale;
-        gObj.scale.x = s[0];
-        gObj.scale.y = s[1];
-        gObj.scale.z = s[2];
+        PLAYER.graphics.scale.x = s[0];
+        PLAYER.graphics.scale.y = s[1];
+        PLAYER.graphics.scale.z = s[2];
     }
-    scene.add(gObj);
-    scene.add(PLAYER.timeGraphic);
-    PLAYER.graphics = gObj;
-    return gObj;
+    scene.add(PLAYER.graphics);
+    return PLAYER.graphics;
 }
+
+PLAYER.prevPt = null;
 
 PLAYER.update = function()
 {
@@ -422,9 +483,19 @@ PLAYER.update = function()
 	return;
     clockTime = Date.now()/1000;
     var pt = PLAYER.getPlayTime();
+    if (PLAYER.prevPt && pt < PLAYER.prevPt) {
+        report("**** pt < prevPt ****");
+    }
+    PLAYER.prevPt = pt;
     $("#midiStatus").html("Time: "+PLAYER.fmt(pt));
-    var x = PLAYER.graphicsX0 - pt*PLAYER.distPerSec;
-    PLAYER.graphics.position.x = x;
+    if (PLAYER.graphicsSpiral) {
+	var a = 2*Math.PI*pt/PLAYER.midiObj.duration;
+	PLAYER.notesGraphic.rotation.y = -a;
+    }
+    else {
+	var x = PLAYER.graphicsX0 - pt*PLAYER.distPerSec;
+	PLAYER.notesGraphic.position.x = x;
+    }
 }
 
 //******************************************************************
