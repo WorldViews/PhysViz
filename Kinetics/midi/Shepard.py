@@ -1,34 +1,12 @@
 """
 """
-from PVMidi import Note, TrackObj, MidiObj
+from PVMidi import Note, TrackObj, MidiObj, playMelody
 
 import math
 import json
 import midi
 from midi.events import *
 
-
-class ShepVoice:
-    def __init__(self, noctaves=4, i0=0, dur=1):
-        self.noctaves = noctaves
-        self.nsteps = 12*noctaves
-        self.low = 21
-        self.high = self.low + self.nsteps
-        self.i0 = i0
-        self.dur = dur
-        self.ticksPerBeat = 1000
-
-    def getNote(self, tOn, n, dur=None):
-        if dur == None:
-            dur = self.dur
-        step = (n - self.i0) % self.nsteps
-        p = self.low + step
-        f = (p-self.low)/float(self.nsteps - 1)
-        a = int(120 * math.sin(f*math.pi))
-        if a == 0:
-            return 0, None
-        tOff = tOn + dur*self.ticksPerBeat
-        return tOn, Note(p, tOn, a, dur*self.ticksPerBeat)
 
 noteTypes = {'q': 32,
              'h': 64,
@@ -51,35 +29,73 @@ def parse(str):
     parts = str.split()
     return map(getDur, parts)
 
-def genShepard(path, nvoices=5, noctaves=5, nnotes=200, motif=None):
-    if motif:
-        motif = parse(motif)
-    print "="*60
-    print "Generating Shepard Tones"
-    tobj = TrackObj(trackName="Track1")
-    t = 0
-    for v in range(nvoices):
-        sv = ShepVoice(noctaves, 12*v)
+
+class Shepard:
+    def __init__(self, noctavesBelow=2, base=46):
+        self.noctavesBelow = noctavesBelow
+        self.noctavesAbove = noctavesBelow
+        self.base = base
+        self.t = 0
+        self.dur = 10
+        self.ticksPerBeat = 1000
+
+    def getChord(self, pitch, dur=None, t=None):
+        if dur == None:
+            dur = self.dur
+        if t == None:
+            t = self.t
+        notes = []
+        method = 2
+        p0 = pitch + self.base
+        low = p0 - self.noctavesBelow*12
+        high = p0 + self.noctavesBelow*12
+        gap = high - low
+        s = 0.9
+        for j in range(-self.noctavesBelow, self.noctavesAbove+1):
+            p = j*12 + p0
+            dp = p - p0
+            if method == 2:
+                dp = p - self.base
+            f = dp/float(gap)
+            a = math.cos(s*f*math.pi)
+            v = int(120*a)
+            #print "  ", p0, p, dp, f, a, v
+            if v <= 0:
+                continue
+            note = Note(p, t, v, dur*self.ticksPerBeat)
+            notes.append(note)
+        self.t = t + dur*self.ticksPerBeat
+        return notes
+
+    def gen(self, path, nnotes=200, motif=None):
+        self.t = 0
+        if motif:
+            motif = parse(motif)
+        print "="*60
+        print "Generating Shepard Tones"
+        tobj = TrackObj(trackName="Track1")
         for i in range(nnotes):
-            j = i
             dur = 1
             if motif:
                 j,dur = motif[i % len(motif)]
-            #print j, dur
-            tOn, note = sv.getNote(t, j, dur)
-            t += sv.ticksPerBeat*dur
-            if note:
-                #print i, note.toList()
+            else:
+                j = i % 12
+            #print i, j
+            notes = self.getChord(j, dur)
+            for note in notes:
                 tobj.addNote(note)
-    midiObj = MidiObj()
-    midiObj.addTrack(tobj)
-    midiObj.saveAsJSON(path)
+
+        midiObj = MidiObj()
+        midiObj.addTrack(tobj)
+        midiObj.saveAsJSON(path)
 
     
 def run():
-    genShepard("shepard_major.json", motif="1 3 5 6 8 10 12")
-    genShepard("shepard_5_5.json")
-    genShepard("shepard2.json", motif="1e 3e 5e 1q 5e 6e 8h 10 6 10 12")
+    s = Shepard()
+    s.gen("shepard_major.json", motif="1 3 5 6 8 10 12")
+    s.gen("shepard.json")
+    s.gen("shepard2.json", motif="1e 3e 5e 1q 5e 6e 8h 10 6 10 12")
+    playMelody("shepard2")
 
 if __name__ == '__main__':
     run()

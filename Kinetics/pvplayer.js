@@ -1,16 +1,22 @@
 
 var PLAYER = {};
 PLAYER.ticksPerBeat = 500;
-PLAYER.delay0 = 1;
+//PLAYER.delay0 = 1;
+PLAYER.delay0 = 0.0;
 PLAYER.isPlaying = false;
-PLAYER.distPerSec = 1.2;
-PLAYER.prevClockTime = null;
+PLAYER.distPerSec = 0.2;
 PLAYER.graphics = null;
 PLAYER.scene = null;
 PLAYER.graphicsScale = null;
 PLAYER.muted = {};
 PLAYER.midiObj = null;
 PLAYER.loadedInstruments = {};
+PLAYER.lastEventPlayTime = 0;
+PLAYER.lastEventClockTime = 0;
+PLAYER.seqNum = 0;
+PLAYER.graphicsX0 = -8;
+PLAYER.graphicsSpiral = true;
+
 //PLAYER.tracks = {}
 
 PLAYER.startPlaying = function()
@@ -25,22 +31,20 @@ PLAYER.startPlaying = function()
 
 PLAYER.pausePlaying = function()
 {
+    report("Pause Playing");
     PLAYER.isPlaying = false;
+    PLAYER.setPlayTime(PLAYER.getPlayTime());
     $("#midiTogglePlaying").text("Play");
 }
+
+PLAYER.stopPlaying = PLAYER.pausePlaying;
 
 PLAYER.rewind = function()
-{
+{ 
+    report("rewind");
     PLAYER.i = 0;
+    PLAYER.setPlayTime(0);
 }
-
-PLAYER.stopPlaying = function ()
-{
-   report("Stop Playing");
-   PLAYER.isPlaying = false;
-    $("#midiTogglePlaying").text("Play");
-}
-
 
 PLAYER.togglePlaying = function()
 {   if ($("#midiTogglePlaying").text() == "Play") {
@@ -63,6 +67,8 @@ PLAYER.fmt = function(t) { return ""+Math.floor(t*1000)/1000; }
 PLAYER.playMidiObj = function(obj)
 {
     PLAYER.midiObj = processMidiObj(obj);
+    //TODO: make this really wait until instruments are loaded.
+    PLAYER.i = 0;
     PLAYER.startPlaying();
     if (PLAYER.scene) {
         report("***** adding Note Graphics ******");
@@ -73,6 +79,11 @@ PLAYER.playMidiObj = function(obj)
     }
 }
 
+/*
+This takes a midiObj as returned by JSON and figures out what
+instruments are requred, and also arranges a sequence of events
+grouped by times.
+ */
 function processMidiObj(midiObj)
 {
     report("processMidiObj");
@@ -113,13 +124,16 @@ function processMidiObj(midiObj)
     }
     seqTimes.sort(function(a,b) { return a-b; });
     var seq = []
+    var maxTime = 0;
     for (var i=0; i<seqTimes.length; i++) {
         var t = seqTimes[i];
 	var evGroup = seqEvents[t];
 	seq.push([t, evGroup[1]]);
+        maxTime = t;//
 	//report("t: "+ t+ " nevents: "+evGroup.length);
     }
     midiObj.seq = seq;
+    midiObj.duration = maxTime/PLAYER.ticksPerBeat;
     PLAYER.setupChannels();
     try {
 	PLAYER.setupTrackInfo();
@@ -131,92 +145,6 @@ function processMidiObj(midiObj)
     //    return midiObj.tracks[ntracks-1];
 }
 
-function checkboxChanged(e)
-{
-    var id = $(this).attr('id');
-    var ch = id.slice(4);
-    report("id: "+id);
-    var val = $(this).is(":checked");
-    //var val = $("#"+mute_id).is(":checked");
-    val = eval(val);
-    report("mute_id: "+id+" ch: "+ch+"  val: "+val);
-    PLAYER.muted[ch] = val;
-}
-
-function instrumentChanged(e)
-{
-    var id = $(this).attr('id');
-    var ch = id.slice(6);
-    var val = $(this).val();
-    val = eval(val);
-    report("ch: "+ch+"  val: "+val);
-    PLAYER.setupChannel(ch, val);
-}
-
-PLAYER.setupMidiControlDiv = function()
-{
-    report("setupMidiControlDiv");
-    if ($("#midiControl").length == 0) {
-	report("*** no midiControlDiv found ****");
-    }
-    str = '<div id="midiTrackInfo">\n' +
-          'No Tracks Loaded<br>\n' +
-          '</div>\n'  +
-          '<button onclick="PLAYER.rewind()">|&#60; </button>\n' +
-          '<button id="midiTogglePlaying" onclick="PLAYER.togglePlaying()">Play</button>\n';
-    $("#midiControl").html(str);
-}
-
-PLAYER.setupTrackInfo = function()
-{
-    report("showTrackInfo");
-    var d = $("#midiTrackInfo");
-    if (d.length == 0) {
-	report("**** No track info div found *****");
-	PLAYER.setupMidiControlDiv();
-    }
-    d.html("");
-    for (var ch in PLAYER.trackChannels) {
-        var mute_id = "mute"+ch;
-        var select_id = "select"+ch;
-	var s = "track: "+ch+"&nbsp";
-	s += 'mute: <input type="checkbox" id="MUTE_ID">\n';
-        s += '&nbsp;&nbsp;&nbsp;';
-        s += 'instrument: <select id="SELECT_ID"></select>\n'
-	s += '<br>\n';
-	s = s.replace("MUTE_ID", mute_id);
-	s = s.replace("SELECT_ID", select_id);
-	d.append(s);
-        var cb = $("#"+mute_id);
-	cb.change(checkboxChanged)
-        /*
-	cb.change(function() {
-                report("id: "+$(this).attr('id'));
-		var val = $(this).is(":checked");
-		//var val = $("#"+mute_id).is(":checked");
-		val = eval(val);
-		report("mute_id: "+mute_id+" ch: "+ch+"  val: "+val);
-		PLAYER.muted[ch] = val;
-	    });
-	*/
-        var sel = $("#"+select_id);
-        for (var i=0; i<128; i++) {
-            var instObj = MIDI.GM.byId[i];
-	    var instName = (i+1)+" "+instObj.name;
-            sel.append($('<option>', { value: i, text: instName}));
-	}
-	sel.val(PLAYER.instruments[ch]);
-        sel.change(instrumentChanged);
-        /*
-        sel.change(function() {
-		var val = $(this).val();
-		val = eval(val);
-		report("ch: "+ch+"  val: "+val);
-		PLAYER.setupChannel(ch, val);
-	    });
-	*/
-    }
-}
 
 /*
   This version starts a series of callbacks for each time
@@ -226,23 +154,52 @@ PLAYER.setupTrackInfo = function()
 PLAYER.playSync = function(obj)
 {
    report("playSync");
-   PLAYER.isAsync = false;
-   PLAYER.i = 0;
+   PLAYER.seqNum += 1;
+   //PLAYER.i = 0;
    PLAYER.delay0 = 0;
    PLAYER.events = obj.seq;
    PLAYER.isPlaying = true;
-   setTimeout(PLAYER.playNextStep, 0);
+   PLAYER.lastEventPlayTime = 0;
+   PLAYER.lastEventClockTime = Date.now()/1000.0;
+   setTimeout(function() {
+	   PLAYER.playNextStep(PLAYER.seqNum)}, 0);
 }
 
-PLAYER.playNextStep = function()
+PLAYER.getPlayTime = function()
+{
+    if (PLAYER.isPlaying) {
+	var ct = Date.now()/1000.0;
+	var t = PLAYER.lastEventPlayTime + (ct - PLAYER.lastEventClockTime);
+	return t;
+    }
+    else
+	return PLAYER.lastEventPlayTime;
+}
+
+PLAYER.setPlayTime = function(t)
+{
+    report("setPlayTime t: "+t);
+    PLAYER.lastEventPlayTime = t;
+    PLAYER.lastEventClockTime = Date.now()/1000.0;
+    //TODO: should set PLAYER.i to appopriate place...
+}
+
+PLAYER.playNextStep = function(seqNum)
 {
     //report("playNextStep "+PLAYER.i);
    if (!PLAYER.isPlaying) {
       report("player stopped!");
       return;
    }
+   if (seqNum != PLAYER.seqNum) {
+       report("***** old sequence detected - dropping it *****");
+       return
+   }
    var evGroup = PLAYER.events[PLAYER.i];
    var t0 = evGroup[0];
+   var pt = t0/PLAYER.ticksPerBeat;
+   PLAYER.lastEventPlayTime = pt;
+   PLAYER.lastEventClockTime = Date.now()/1000.0;
    PLAYER.handleEventGroup(evGroup);
    PLAYER.i += 1;
    if (PLAYER.i >= PLAYER.events.length) {
@@ -253,7 +210,8 @@ PLAYER.playNextStep = function()
    }
    var t1 = PLAYER.events[PLAYER.i][0];
    var dt = (t1-t0)/PLAYER.ticksPerBeat;
-   setTimeout(PLAYER.playNextStep, dt*1000);
+   setTimeout(function() {
+	   PLAYER.playNextStep(seqNum)}, dt*1000);
 }
 
 PLAYER.handleEventGroup = function(eventGroup)
@@ -283,44 +241,10 @@ PLAYER.handleEventGroup = function(eventGroup)
         if (t0_ != t0) {
             report("*** mismatch t0: "+t0+" t0_: "+t0_);
         }
-        if (PLAYER.isAsync)
-            t = t0/PLAYER.ticksPerBeat;
 	report(""+t0+" note channel: "+channel+" pitch: "+pitch+" v:"+v+" dur: "+dur);
         MIDI.noteOn(channel, pitch, v, t+PLAYER.delay0);
         MIDI.noteOff(channel, pitch, v, t+dur+PLAYER.delay0);
     }
-}
-
-/*
-  This version sends all note events immediately and returns.
-  Once it returns, nothing more needs to be done.
- */
-PLAYER.playAsync = function(obj)
-{
-    report("Playing Async");
-    PLAYER.isAsync = true;
-    var events = obj.seq;
-    PLAYER.delay0 = 1;
-    for (var i=0; i<events.length; i++) {
-	PLAYER.handleEventGroup(events[i]);
-    }
-}
-
-PLAYER.playScale = function(){
-    report("scheduling notes");
-    MIDI.programChange(0, instrument);
-    var firstNote = 21;
-    var lastNote = firstNote + 5*12+1;
-    var t = 0;
-    var delay = 0.6; // delta time - time between events
-    var velocity = 127; // how hard the note hits
-    var note = 21; // the note to use
-    MIDI.setVolume(0, 127);
-    for(var note=firstNote; note <= lastNote; ++note){
-        MIDI.noteOn(0, note, velocity, t);
-	MIDI.noteOff(0, note, t += delay);
-    }
-    report("finished scheduling notes");
 }
 
 
@@ -416,10 +340,27 @@ function OLDloadInstrument(instr, successFn)
 }
 
 
-PLAYER.getNoteGraphic = function(t, dur, pitch, material)
+PLAYER.getTimeGraphicR = function()
 {
     var y0 = -6;
-    var x0 = -8;
+    var x0 = PLAYER.graphicsX0;
+    var z0 = 0;
+    var gap = .2;
+    var w = .1;
+    var material = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
+    var geometry = new THREE.BoxGeometry( 0.001, 300, w );
+    var g = new THREE.Mesh( geometry, material );
+    g._mat = material;
+    g.position.x = x0;
+    g.position.y = y0;
+    g.position.z = z0;
+    return g;
+}
+
+PLAYER.getNoteGraphicR = function(t, dur, pitch, material)
+{
+    var y0 = -6;
+    var x0 = 0;//PLAYER.graphicsX0;
     var z0 = 0;
     var gap = .2;
     var w = .1;
@@ -428,9 +369,57 @@ PLAYER.getNoteGraphic = function(t, dur, pitch, material)
     var geometry = new THREE.BoxGeometry( h, w, w );
     var ng = new THREE.Mesh( geometry, material );
     ng._mat = material;
-    ng.position.x = x0 + PLAYER.distPerSec*t;
+    ng.position.x = x0 + PLAYER.distPerSec*t + h/2;
     ng.position.y = y0 + gap * pitch;
     ng.position.z = z0;
+    return ng;
+}
+
+PLAYER.getTimeGraphicS = function()
+{
+    var tDur = PLAYER.midiObj.duration;
+    var c = tDur*PLAYER.distPerSec;
+    var r = c / (2*Math.PI);
+    var y0 = 4;
+    var x0 = 0;//PLAYER.graphicsX0;
+    var z0 = 0;
+    var w = 10;
+    var material = new THREE.MeshPhongMaterial( { color: 0xff0000 } );
+    //var geometry = new THREE.BoxGeometry( 0.001, 300, w );
+    var geometry = new THREE.BoxGeometry( 0.01, 300, 2 );
+    var g = new THREE.Mesh( geometry, material );
+    g._mat = material;
+    material.transparent = true;
+    material.opacity = .3;
+    g.position.x = x0;
+    g.position.y = y0;
+    g.position.z = z0 + r;
+    report("**** getTimeGraphicS "+JSON.stringify(g.position));
+    return g;
+}
+
+PLAYER.getNoteGraphicS = function(t, dur, pitch, material)
+{
+    var tDur = PLAYER.midiObj.duration;
+    var c = tDur*PLAYER.distPerSec;
+    var r = c / (2*Math.PI);
+    var y0 = 4;
+    var x0 = 0;//PLAYER.graphicsX0;
+    var z0 = 0;
+    var gap = .2;
+    var w = .1;
+    var h = PLAYER.distPerSec*dur;
+    material.color.setHSL((pitch%12)/12.0, .6, .5);
+    var geometry = new THREE.BoxGeometry( h, w, w );
+    var ng = new THREE.Mesh( geometry, material );
+    ng._mat = material;
+    var a = 2*Math.PI*(t+dur/2)/tDur;
+    var p = ng.position;
+    p.x = x0 + r*Math.sin(a);
+    p.z = z0 + r*Math.cos(a);
+    p.y = y0 + gap * pitch;
+    //report("getNoteGraphicS a: "+a+"  r: "+r+"  x: "+p.x+"  y: "+p.y+"  z: "+p.z);
+    ng.rotation.y = a;
     return ng;
 }
 
@@ -448,7 +437,11 @@ PLAYER.graphicsHandleEventGroup = function(gObj, eventGroup)
 	var t = t0/PLAYER.ticksPerBeat;
 	//report(t0+" graphic for note pitch: "+pitch+" v:"+v+" dur: "+dur);
         var material = new THREE.MeshPhongMaterial( { color: 0x00dddd } );
-	var noteGraphic = PLAYER.getNoteGraphic(t, dur, pitch, material);
+	var noteGraphic;
+	if (PLAYER.graphicsSpiral)
+           noteGraphic = PLAYER.getNoteGraphicS(t, dur, pitch, material);
+        else
+           noteGraphic = PLAYER.getNoteGraphicR(t, dur, pitch, material);
         gObj.add( noteGraphic );
     }
 }
@@ -461,36 +454,122 @@ PLAYER.addNoteGraphics = function(scene, midiTrack)
 
     report("Adding note graphics...");
     var events = midiTrack.seq;
-    var gObj = new THREE.Object3D();
+    PLAYER.graphics = new THREE.Object3D();
+    PLAYER.notesGraphic = new THREE.Object3D();
+    PLAYER.graphics.add(PLAYER.notesGraphic);
+    if (PLAYER.graphicsSpiral)
+	PLAYER.timeGraphic = PLAYER.getTimeGraphicS();
+    else
+	PLAYER.timeGraphic = PLAYER.getTimeGraphicR();
     for (var i=0; i<events.length; i++) {
-	PLAYER.graphicsHandleEventGroup(gObj, events[i]);
+	PLAYER.graphicsHandleEventGroup(PLAYER.notesGraphic, events[i]);
     }
+    PLAYER.graphics.add(PLAYER.timeGraphic)
     if (PLAYER.graphicsScale) {
         var s = PLAYER.graphicsScale;
-        gObj.scale.x = s[0];
-        gObj.scale.y = s[1];
-        gObj.scale.z = s[2];
+        PLAYER.graphics.scale.x = s[0];
+        PLAYER.graphics.scale.y = s[1];
+        PLAYER.graphics.scale.z = s[2];
     }
-    scene.add(gObj);
-    PLAYER.graphics = gObj;
-    return gObj;
+    scene.add(PLAYER.graphics);
+    return PLAYER.graphics;
 }
+
+PLAYER.prevPt = null;
 
 PLAYER.update = function()
 {
     if (!PLAYER.graphics)
 	return;
     clockTime = Date.now()/1000;
-    if (!PLAYER.prevClockTime)
-	PLAYER.prevClockTime = clockTime;
-    var dt = clockTime - PLAYER.prevClockTime;
-    PLAYER.prevClockTime = clockTime;
-    dt *= 10.0;
-    var dx = dt*PLAYER.distPerSec*dt;
-    //report("translating graphic by "+dx);
-    PLAYER.graphics.position.x -= dx;
+    var pt = PLAYER.getPlayTime();
+    if (PLAYER.prevPt && pt < PLAYER.prevPt) {
+        report("**** pt < prevPt ****");
+    }
+    PLAYER.prevPt = pt;
+    $("#midiStatus").html("Time: "+PLAYER.fmt(pt));
+    if (PLAYER.graphicsSpiral) {
+	var a = 2*Math.PI*pt/PLAYER.midiObj.duration;
+	PLAYER.notesGraphic.rotation.y = -a;
+    }
+    else {
+	var x = PLAYER.graphicsX0 - pt*PLAYER.distPerSec;
+	PLAYER.notesGraphic.position.x = x;
+    }
 }
 
+//******************************************************************
+// These have to do with the Web GUI for midi control
+//
+function checkboxChanged(e)
+{
+    var id = $(this).attr('id');
+    var ch = id.slice(4);
+    report("id: "+id);
+    var val = $(this).is(":checked");
+    //var val = $("#"+mute_id).is(":checked");
+    val = eval(val);
+    report("mute_id: "+id+" ch: "+ch+"  val: "+val);
+    PLAYER.muted[ch] = val;
+}
+
+function instrumentChanged(e)
+{
+    var id = $(this).attr('id');
+    var ch = id.slice(6);
+    var val = $(this).val();
+    val = eval(val);
+    report("ch: "+ch+"  val: "+val);
+    PLAYER.setupChannel(ch, val);
+}
+
+PLAYER.setupMidiControlDiv = function()
+{
+    report("setupMidiControlDiv");
+    if ($("#midiControl").length == 0) {
+	report("*** no midiControlDiv found ****");
+    }
+    str = '<div id="midiTrackInfo">\n' +
+          'No Tracks Loaded<br>\n' +
+          '</div>\n'  +
+          '<button onclick="PLAYER.rewind()">|&#60; </button>\n' +
+          '<button id="midiTogglePlaying" onclick="PLAYER.togglePlaying()">Play</button>\n' +
+          '&nbsp;&nbsp;<span id="midiStatus">No Midi Object</span>\n';
+    $("#midiControl").html(str);
+}
+
+PLAYER.setupTrackInfo = function()
+{
+    report("showTrackInfo");
+    var d = $("#midiTrackInfo");
+    if (d.length == 0) {
+	report("**** No track info div found *****");
+	PLAYER.setupMidiControlDiv();
+    }
+    d.html("");
+    for (var ch in PLAYER.trackChannels) {
+        var mute_id = "mute"+ch;
+        var select_id = "select"+ch;
+	var s = "track: "+ch+"&nbsp";
+	s += 'mute: <input type="checkbox" id="MUTE_ID">\n';
+        s += '&nbsp;&nbsp;&nbsp;';
+        s += 'instrument: <select id="SELECT_ID"></select>\n'
+	s += '<br>\n';
+	s = s.replace("MUTE_ID", mute_id);
+	s = s.replace("SELECT_ID", select_id);
+	d.append(s);
+        var cb = $("#"+mute_id);
+	cb.change(checkboxChanged)
+        var sel = $("#"+select_id);
+        for (var i=0; i<128; i++) {
+            var instObj = MIDI.GM.byId[i];
+	    var instName = (i+1)+" "+instObj.name;
+            sel.append($('<option>', { value: i, text: instName}));
+	}
+	sel.val(PLAYER.instruments[ch]);
+        sel.change(instrumentChanged);
+    }
+}
 
 $(document).ready( function() {
     PLAYER.setupTrackInfo();

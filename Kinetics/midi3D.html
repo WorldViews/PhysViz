@@ -30,25 +30,38 @@
 	<!-- includes -->
 	<script src="./wmb/timer.js"></script>
 	<script src="pvplayer.js"></script>
+
+	<script src="GetWebSock.js"></script>
+
 	<!-- font -->
 <script>
 playMelody = PLAYER.playMelody;
+WS = GetWebSock({'midi.play': handlePlayRequest});
+
+function handlePlayRequest(msg)
+{
+    playMelody(msg.name);
+}
+
 </script>
 <div id="controls">
    Colors: <input id="colors" type="checkbox">
    &nbsp;
    Audio: <input id="audio" type="checkbox">
    &nbsp;
-   Params: <input id="showParams" type="checkbox">
+   Controls: <input id="showParams" type="checkbox">
    &nbsp;
    <input id="reset" type="button" value="reset">
    <div id="params" hidden>
      <div id="midiControl"  style="border-style: solid; border-width: 2px;">
+    xxx
+<!--
      <div id="midiTrackInfo">
      No Tracks Loaded<br>
      </div>
      <button onclick='PLAYER.rewind()'>|&#60; </button>
      <button id="midiTogglePlaying" onclick='PLAYER.togglePlaying()'>Play</button>
+-->
      </div id="midiControl">
 <p>
      <button onclick='playMelody("chopin69")'>Chopin69</button>
