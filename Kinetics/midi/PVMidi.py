@@ -6,10 +6,29 @@ import traceback
 import math
 import json
 import midi
+import sys, string
 from midi.events import *
 
+def is_ascii(s):
+    return all(ord(c) < 128 for c in s)
 
 import base64
+
+class ProgChangeEvent:
+    def __init__(self, t0, ch, instrument):
+        self.t0 = t0
+        self.channel = ch
+        self.instrument = instrument
+        
+    def getT0(self):
+        return self.t0
+
+    def setT0(self, t0):
+        self.t0 = t0
+
+    def toList(self):
+        return ["programChange", self.t0, self.channel, self.instrument]
+
 
 class TempoEvent:
     def __init__(self, t0, bpm, mpqn):
@@ -28,7 +47,8 @@ class TempoEvent:
 
 
 class Note:
-    def __init__(self, pitch, t0, velocity, dur=None):
+    def __init__(self, channel, pitch, t0, velocity, dur=None):
+        self.channel = channel
         self.pitch = pitch
         self.t0 = t0
         self.velocity = velocity
@@ -59,6 +79,7 @@ class Note:
         v = self.parts[0][1]
         dur = self.parts[-1][0] - t0
         d = {"type": "note",
+             "channel": channel,
              "t0": t0,
              "pitch": self.pitch,
              "dur": dur,
@@ -72,7 +93,7 @@ class Note:
         t0 = self.parts[0][0]
         v = self.parts[0][1]
         dur = self.parts[-1][0] - t0
-        lst = ["note", t0, self.pitch, v, dur]
+        lst = ["note", self.channel, t0, self.pitch, v, dur]
         if len(self.parts) != 2:
             print "Note with %d parts" % len(self.parts)
             lst.append(self.parts)
@@ -102,7 +123,7 @@ class TrackObj:
         tMax = self.getMaxTime()
         notes = tobj.allNotes()
         for note in notes:
-            nnote = Note(note.pitch, note.t0+tMax, note.velocity, note.dur)
+            nnote = Note(note.channel, note.pitch, note.t0+tMax, note.velocity, note.dur)
             self.addNote(nnote)
         self.tMax = tMax + tobj.getMaxTime()
 
@@ -170,7 +191,7 @@ class TrackObj:
         for t in keys:
             nt = tmap[t]
             for note in self.events[t]:
-                nnote = Note(note.pitch, nt, note.velocity, note.dur)
+                nnote = Note(note.channel, note.pitch, nt, note.velocity, note.dur)
                 tobj.addNote(nnote)
         return tobj
 
@@ -194,6 +215,9 @@ class TrackObj:
 
     def addTempoEvent(self, tempoEvent):
         self.addNote(tempoEvent)
+
+    def addProgramChangeEvent(self, event):
+        self.addNote(event)
         
     def observeTrack(self, track):
         tn = 0
@@ -204,8 +228,8 @@ class TrackObj:
             #print "tn: %s tick: %s evt: %s" % (tn, tick, evt)
             if isinstance(evt, NoteEvent):
                 ch = evt.channel
-                if ch != 0:
-                    print "ch:", ch
+                #if ch != 0:
+                #    print "ch:", ch
                 pitch = evt.pitch
                 v = evt.velocity
                 #print tn, evt.name, evt.pitch, evt.velocity
@@ -221,7 +245,7 @@ class TrackObj:
                         if v == 0:
                             print "**** Warning ignoring note with velocity 0 ****"
                             continue
-                        openNotes[pitch] = Note(pitch, tn, v)
+                        openNotes[pitch] = Note(ch, pitch, tn, v)
                     if v == 0:
                         note = openNotes[pitch]
                         self.addNote(note)
@@ -240,12 +264,17 @@ class TrackObj:
                     print "Unexpected note type", evt.name
             elif isinstance(evt, TrackNameEvent):
                 print "TrackName", evt.text
-                self.trackName = evt.text
+                if is_ascii(evt.text):
+                    self.trackName = evt.text
+                else:
+                    print "**** Non ascii name", evt.text
             elif isinstance(evt, PitchWheelEvent):
                 #print "PitchWheel", evt.pitch
                 pass
             elif isinstance(evt, ProgramChangeEvent):
-                print "ProgramChange", evt.value
+                ch = evt.channel
+                print "ProgramChange", ch, evt.value
+                self.addProgramChangeEvent(ProgChangeEvent(tn, ch, evt.value))
                 if self.instrument != None and self.instrument != evt.value:
                     print "**** Changing instrument within track"
                 self.instrument = evt.value
@@ -266,7 +295,7 @@ class TrackObj:
             elif isinstance(evt, ControlChangeEvent):
                 pass
             else:
-                print evt.name
+                print "Unrecognized event type:", evt.name
         #
         # Now must close any open notes
         for pitch in openNotes:
@@ -308,7 +337,8 @@ class TrackObj:
             t, noteList = ev
             notes = []
             for n in noteList:
-                note = Note(n[2], n[1], n[3], n[4])
+                #note = Note(n[2], n[1], n[3], n[4])
+                note = Note(n[1], n[3], n[2], n[4], n[5])
                 notes.append(note)
             self.events[t] = notes
 
@@ -423,6 +453,7 @@ def playMelody_(name):
     print "result"
 
 def run():
+    dump("shimauta1.mid")
     dump("minute_waltz.mid")
     dump("jukebox.mid")
     dump("BluesRhythm1.mid")

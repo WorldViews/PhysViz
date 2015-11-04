@@ -1,8 +1,8 @@
 
-import time, math
+import time, math, traceback
 import threespace_api as ts_api
 
-def watchAngles(angleCallback=None, maxTime=None):
+def watchAngles_(angleCallback=None, maxTime=None):
     t0 = time.time()
     #device_list = ts_api.getComPorts(filter=ts_api.TSS_FIND_USB)
     device_list = ts_api.getComPorts()
@@ -52,6 +52,14 @@ def watchAngles(angleCallback=None, maxTime=None):
     ## Now close the port.
     device.close()
 
+def watchAngles(angleCallback=None, maxTime=None):
+    while 1:
+        try:
+            watchAngles_(angleCallback, maxTime)
+        except:
+            traceback.print_exc()
+        print "Wait a second and try again"
+        time.sleep(1)
 
 if __name__ == '__main__':
    watchAngles()

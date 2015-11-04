@@ -17,6 +17,7 @@ PLAYER.seqNum = 0;
 PLAYER.graphicsX0 = -8;
 PLAYER.graphicsSpiral = true;
 PLAYER.crankFactor = 0;
+PLAYER.crankAngle0 = null;
 PLAYER.crankAngle = null;
 PLAYER.USE_NEW_METHOD = true;
 
@@ -29,6 +30,7 @@ PLAYER.startPlaying = function()
 	return;
     }
     $("#midiTogglePlaying").text("Pause");
+    PLAYER.crankAngle0 = PLAYER.crankAngle;
     PLAYER.playSync(PLAYER.midiObj);
 }
 
@@ -47,6 +49,7 @@ PLAYER.rewind = function()
     report("rewind");
     PLAYER.i = 0;
     PLAYER.setPlayTime(0);
+    PLAYER.crankAngle0 = PLAYER.crankAngle;
 }
 
 PLAYER.togglePlaying = function()
@@ -173,7 +176,9 @@ PLAYER.playSync = function(obj)
 PLAYER.getPlayTime = function()
 {
     if (PLAYER.crankFactor && PLAYER.crankAngle) {
-        return PLAYER.crankFactor*PLAYER.crankAngle;
+	if (PLAYER.crankAngle0 == null)
+	    PLAYER.crankAngle0 = PLAYER.crankAngle;
+        return PLAYER.crankFactor*(PLAYER.crankAngle-PLAYER.crankAngle0);
     }
     if (PLAYER.isPlaying) {
 	var ct = Date.now()/1000.0;
@@ -237,7 +242,22 @@ PLAYER.checkForEvent = function()
    var nextT0 = evGroup[0];
    var nextPt = nextT0/PLAYER.ticksPerBeat;
    if (pt < nextPt)
+   {
+       if (PLAYER.i > 0) {
+           var evGroup = PLAYER.events[PLAYER.i-1];
+           var prevT0 = evGroup[0];
+           var prevPt = prevT0/PLAYER.ticksPerBeat;
+           if (pt > prevPt)
+               return;
+           PLAYER.lastEventPlayTime = pt;
+           PLAYER.lastEventClockTime = Date.now()/1000.0;
+           PLAYER.handleEventGroup(evGroup);
+           PLAYER.i -= 1;
+	   if (PLAYER.i < 0)
+	       PLAYER.i = 0;
+       }
        return;
+   }
    PLAYER.lastEventPlayTime = pt;
    PLAYER.lastEventClockTime = Date.now()/1000.0;
    PLAYER.handleEventGroup(evGroup);
@@ -260,15 +280,27 @@ PLAYER.handleEventGroup = function(eventGroup)
         var note = notes[k];
 	if (PLAYER.muted[note.track])
 	    continue;
+	/*
 	var channel = PLAYER.trackChannels[note.track];
         var etype = note[0];
         var t0_ = note[1];
         var pitch = note[2];
 	var v = note[3];
         var dur = note[4]/PLAYER.ticksPerBeat;
+	*/
+        var etype = note[0];
+	var channel = note[1];
+        var t0_ = note[2];
+        var pitch = note[3];
+	var v = note[4];
+        var dur = note[5]/PLAYER.ticksPerBeat;
 	var t = 0;
 	if (etype == "tempo") {
 	    report("tempo");
+	    continue;
+	}
+	if (etype == "programChange") {
+	    report("programChange");
 	    continue;
 	}
         if (etype != "note") {
@@ -277,6 +309,10 @@ PLAYER.handleEventGroup = function(eventGroup)
         if (t0_ != t0) {
             report("*** mismatch t0: "+t0+" t0_: "+t0_);
         }
+	if (channel != 0) {
+	    report("channel "+channel+" -> 0");
+	    channel = 0;
+	}
 	//report(""+t0+" note channel: "+channel+" pitch: "+pitch+" v:"+v+" dur: "+dur);
         MIDI.noteOn(channel, pitch, v, t+PLAYER.delay0);
         MIDI.noteOff(channel, pitch, v, t+dur+PLAYER.delay0);
@@ -603,6 +639,7 @@ PLAYER.compositions = [
     "minute_waltz",
     "jukebox",
     "risset0",
+    "shimauta1",
 ];
 
 PLAYER.setupTrackInfo = function()
