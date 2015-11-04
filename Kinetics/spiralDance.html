@@ -147,6 +147,7 @@ function handleYEI(msg) {
    angle += da;
   // report("angle: "+angle);
    SKIRT.CRANK_ANGLE = angle*Math.PI/180;
+   PLAYER.crankAngle = SKIRT.CRANK_ANGLE;
 }
 
 function vec3(x,y,z) { return new THREE.Vector3(x,y,z); }
@@ -415,7 +416,7 @@ var scene;
 
 $(document).ready(function() {
    report("Setting up GUI");
-   setupGUI(["v0", "PLAYER.ticksPerBeat"]);
+   setupGUI(["v0", "PLAYER.ticksPerBeat", "PLAYER.crankFactor"]);
    //var instrument = "acoustic_grand_piano";
    //instrument = "choir_aahs";
    MIDI.loader=new sketch.ui.Timer;

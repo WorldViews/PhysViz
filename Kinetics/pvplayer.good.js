@@ -16,9 +16,6 @@ PLAYER.lastEventClockTime = 0;
 PLAYER.seqNum = 0;
 PLAYER.graphicsX0 = -8;
 PLAYER.graphicsSpiral = true;
-PLAYER.crankFactor = 0;
-PLAYER.crankAngle = null;
-PLAYER.USE_NEW_METHOD = true;
 
 //PLAYER.tracks = {}
 
@@ -164,17 +161,12 @@ PLAYER.playSync = function(obj)
    PLAYER.isPlaying = true;
    PLAYER.lastEventPlayTime = 0;
    PLAYER.lastEventClockTime = Date.now()/1000.0;
-   if (!PLAYER.USE_NEW_METHOD) {
-       setTimeout(function() {
-	    PLAYER.playNextStep(PLAYER.seqNum)}, 0);
-   }
+   setTimeout(function() {
+	   PLAYER.playNextStep(PLAYER.seqNum)}, 0);
 }
 
 PLAYER.getPlayTime = function()
 {
-    if (PLAYER.crankFactor && PLAYER.crankAngle) {
-        return PLAYER.crankFactor*PLAYER.crankAngle;
-    }
     if (PLAYER.isPlaying) {
 	var ct = Date.now()/1000.0;
 	var t = PLAYER.lastEventPlayTime + (ct - PLAYER.lastEventClockTime);
@@ -192,8 +184,6 @@ PLAYER.setPlayTime = function(t)
     //TODO: should set PLAYER.i to appopriate place...
 }
 
-//
-// THis works and is self scheduling...
 PLAYER.playNextStep = function(seqNum)
 {
     //report("playNextStep "+PLAYER.i);
@@ -222,32 +212,6 @@ PLAYER.playNextStep = function(seqNum)
    var dt = (t1-t0)/PLAYER.ticksPerBeat;
    setTimeout(function() {
 	   PLAYER.playNextStep(seqNum)}, dt*1000);
-}
-
-//
-PLAYER.checkForEvent = function()
-{
-    //report("playNextStep "+PLAYER.i);
-   if (!PLAYER.isPlaying) {
-      report("player stopped!");
-      return;
-   }
-   var pt = PLAYER.getPlayTime();
-   var evGroup = PLAYER.events[PLAYER.i];
-   var nextT0 = evGroup[0];
-   var nextPt = nextT0/PLAYER.ticksPerBeat;
-   if (pt < nextPt)
-       return;
-   PLAYER.lastEventPlayTime = pt;
-   PLAYER.lastEventClockTime = Date.now()/1000.0;
-   PLAYER.handleEventGroup(evGroup);
-   PLAYER.i += 1;
-   if (PLAYER.i >= PLAYER.events.length) {
-      report("FInished playing");
-      PLAYER.isPlaying = false;
-      PLAYER.stopPlaying();
-      return;
-   }
 }
 
 PLAYER.handleEventGroup = function(eventGroup)
@@ -515,8 +479,6 @@ PLAYER.prevPt = null;
 
 PLAYER.update = function()
 {
-    if (PLAYER.isPlaying && PLAYER.USE_NEW_METHOD)
-	PLAYER.checkForEvent();
     if (!PLAYER.graphics)
 	return;
     clockTime = Date.now()/1000;
