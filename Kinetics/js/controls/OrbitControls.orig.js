@@ -192,14 +192,12 @@ THREE.OrbitControls = function ( object, domElement ) {
 			var offset = position.clone().sub( scope.target );
 			var targetDistance = offset.length();
 
-			var kludge = 1;
-			report("perspective cam pan kludge: "+kludge);
 			// half of the fov is center to top of screen
 			targetDistance *= Math.tan( ( scope.object.fov / 2 ) * Math.PI / 180.0 );
 
 			// we actually don't use screenWidth, since perspective camera is fixed to screen height
-			scope.panLeft( kludge * 2 * deltaX * targetDistance / element.clientHeight );
-			scope.panUp( kludge * 2 * deltaY * targetDistance / element.clientHeight );
+			scope.panLeft( 2 * deltaX * targetDistance / element.clientHeight );
+			scope.panUp( 2 * deltaY * targetDistance / element.clientHeight );
 
 		} else if ( scope.object instanceof THREE.OrthographicCamera ) {
 
@@ -388,8 +386,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 		if ( scope.enabled === false ) return;
 		event.preventDefault();
 
-                report("onMouseDown event.button: "+event.button+"  scope.mouseButtons.PAN: "+scope.mouseButtons.PAN);
-
 		if ( event.button === scope.mouseButtons.ORBIT ) {
 			if ( scope.noRotate === true ) return;
 
@@ -405,8 +401,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 			dollyStart.set( event.clientX, event.clientY );
 
 		} else if ( event.button === scope.mouseButtons.PAN ) {
-                        report("state = STATE.PAN    scope.noPan: "+scope.noPan);
-
 			if ( scope.noPan === true ) return;
 
 			state = STATE.PAN;
@@ -466,7 +460,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 			dollyStart.copy( dollyEnd );
 
 		} else if ( state === STATE.PAN ) {
-                        report("state = STATE.PAN    scope.noPan: "+scope.noPan);
+
 			if ( scope.noPan === true ) return;
 
 			panEnd.set( event.clientX, event.clientY );
