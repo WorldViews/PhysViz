@@ -640,6 +640,7 @@ PLAYER.compositions = [
     "jukebox",
     "risset0",
     "shimauta1",
+    "passac",
 ];
 
 PLAYER.setupTrackInfo = function()

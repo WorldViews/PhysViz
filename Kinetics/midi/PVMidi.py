@@ -460,6 +460,7 @@ def run():
     dump("beethovenSym5m1.mb64")
     dump("chopin69.mb64")
     dump("wtc0.mb64")
+    dump("passac.mid")
 
 if __name__ == '__main__':
     run()
