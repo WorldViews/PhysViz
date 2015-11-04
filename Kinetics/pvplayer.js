@@ -1,6 +1,6 @@
 
 var PLAYER = {};
-PLAYER.ticksPerBeat = 500;
+PLAYER.ticksPerBeat = 1200;
 //PLAYER.delay0 = 1;
 PLAYER.delay0 = 0.0;
 PLAYER.isPlaying = false;
@@ -241,7 +241,7 @@ PLAYER.handleEventGroup = function(eventGroup)
         if (t0_ != t0) {
             report("*** mismatch t0: "+t0+" t0_: "+t0_);
         }
-	report(""+t0+" note channel: "+channel+" pitch: "+pitch+" v:"+v+" dur: "+dur);
+	//report(""+t0+" note channel: "+channel+" pitch: "+pitch+" v:"+v+" dur: "+dur);
         MIDI.noteOn(channel, pitch, v, t+PLAYER.delay0);
         MIDI.noteOff(channel, pitch, v, t+dur+PLAYER.delay0);
     }
@@ -523,6 +523,13 @@ function instrumentChanged(e)
     PLAYER.setupChannel(ch, val);
 }
 
+PLAYER.compositionChanged = function(e)
+{
+    var name = $(this).val();
+    report("compositionChanged: "+name);
+    PLAYER.playMelody(name);
+}
+
 PLAYER.setupMidiControlDiv = function()
 {
     report("setupMidiControlDiv");
@@ -534,9 +541,31 @@ PLAYER.setupMidiControlDiv = function()
           '</div>\n'  +
           '<button onclick="PLAYER.rewind()">|&#60; </button>\n' +
           '<button id="midiTogglePlaying" onclick="PLAYER.togglePlaying()">Play</button>\n' +
-          '&nbsp;&nbsp;<span id="midiStatus">No Midi Object</span>\n';
+          '&nbsp;&nbsp;<select id="midiCompositionSelection"></select>\n' +
+          '&nbsp;&nbsp;<span id="midiStatus" style="{width: 300px;}">No Midi Object</span>\n';
     $("#midiControl").html(str);
+    //
+    report("*** adding compositions ");
+    var sel = $("#midiCompositionSelection");
+    sel.append($('<option>', { value: "None", text: "(None)"}));
+    for (var i=0; i<PLAYER.compositions.length; i++) {
+        var compName = PLAYER.compositions[i];
+	report("**** adding comp "+compName);
+        sel.append($('<option>', { value: compName, text: compName}));
+    }
+    sel.change(PLAYER.compositionChanged);
 }
+
+PLAYER.compositions = [
+    "chopin69",
+    "wtc0",
+    "beethovenSym5m1",
+    "shepard",
+    "BluesRhythm1",
+    "minute_waltz",
+    "jukebox",
+    "risset0",
+];
 
 PLAYER.setupTrackInfo = function()
 {

@@ -7,7 +7,7 @@ import SocketServer
 import shutil
 import json
 
-PORT = 8000
+PORT = 8001
 
 bases = {"images", "C:"}
 class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):

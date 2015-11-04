@@ -84,7 +84,7 @@ ANIM.ViewInterpolator = function(p0, r0, p1, r1, camera)
 	camera.position.x = this.p.x;
 	camera.position.y = this.p.y;
 	camera.position.z = this.p.z;
-	Quaternion.slerp(this.q0, this.q1, this.q, f);
+	THREE.Quaternion.slerp(this.q0, this.q1, this.q, f);
 	report("q: "+JSON.stringify(this.q));
 	camera.rotation.setFromQuaternion(this.q)
     }
@@ -168,8 +168,11 @@ ANIM.bookmarkView = function(name)
         return;
     }
     if (!name) {
-        ANIM.viewNum += 1;
-        name = "View"+ANIM.viewNum;
+	do {
+            ANIM.viewNum += 1;
+            name = "View"+ANIM.viewNum;
+        }
+	while (ANIM.views[name]);
     }
     var pos = P.camera.position.clone();
     var eulerAngles = P.camera.rotation.clone();
@@ -181,6 +184,7 @@ ANIM.bookmarkView = function(name)
     report("bookmarkView rot "+JSON.stringify(eulerAngles));
     report("bookmarkView test.... "+JSON.stringify({'a': 3, 'b': {'c': 8}}));
     ANIM.uploadBookmarks();
+    $("#viewNameSelection").append($('<option>', { value: name, text: name}));
     //    report("bookmarkView "+JSON.stringify(view));
 }
 
@@ -202,10 +206,15 @@ ANIM.handleBookmarks = function(obj)
     report("handleBookmarks");
     report("views: "+JSON.stringify(obj));
     ANIM.views = obj;
-    ANIM.viewNames = [];
-    for (var name in ANIM.views) {
+    ANIM.viewNames = Object.keys(ANIM.views);
+    ANIM.viewNames.sort();
+    $("#viewNameSelection").html();
+    //for (var name in ANIM.views) {
+    for (var i=0; i<ANIM.viewNames.length; i++) {
+	var name = ANIM.viewNames[i];
         report("name: "+name+" view: "+JSON.stringify(ANIM.views[name]));
-        ANIM.viewNames.push(name);
+        //ANIM.viewNames.push(name);
+        $("#viewNameSelection").append($('<option>', { value: name, text: name}));
     }
 }
 
@@ -237,6 +246,7 @@ ANIM.gotoView = function(name, dur)
     }
     report("pos: "+view.position);
     report("rot: "+view.rotation);
+    $("#currentViewName").html(name);
     if (dur > 0) {
         var c = P.camera;
 	var pos0 = P.camera.position.clone();
@@ -262,9 +272,37 @@ ANIM.gotoView = function(name, dur)
     P.camera.updateProjectionMatrix();
 }
 
+ANIM.viewSelectionChanged = function(e)
+{
+    var name = $("#viewNameSelection").val();
+    ANIM.gotoView(name);
+}
 
-$(document).ready(function(e) {
+ANIM.createButtons = function()
+{
+    hstr = '';
+    hstr += '<input id="markViewpoint" type="button" value="mark">\n';
+    hstr += '<input id="nextViewpoint" type="button" value="next">\n';
+    hstr += '&nbsp;&nbsp;';
+    hstr += '<span id="currentViewName"></span>';
+    hstr += '<select id="viewNameSelection"></select>';
+    $("#viewControls").html(hstr);
+    $("#viewNameSelection").change(ANIM.viewSelectionChanged);
+}
+
+ANIM.setupHTML = function()
+{
+    report("ANIM.setupHTML");
+    var d = $("#viewControls");
+    if (d.length == 0) {
+        report("No View Controls");
+    }
+    ANIM.createButtons();
     $("#markViewpoint").click(function(e) { ANIM.bookmarkView()});
     $("#nextViewpoint").click(function(e) { ANIM.gotoView()});
+}
+
+$(document).ready(function(e) {
+    ANIM.setupHTML();
     ANIM.downloadBookmarks();
 });

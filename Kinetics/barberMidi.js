@@ -180,7 +180,7 @@ function setupWorld()
               }
          }
          renderer.render(scene, camera);
-         if (controls) {
+         if (controls && controls.update) {
             controls.update();
          }
 	  if (PLAYER)
@@ -190,7 +190,8 @@ function setupWorld()
 
       trackball = 1;
       if (trackball) {
-          controls = new THREE.TrackballControls( camera, container );
+          //controls = new THREE.TrackballControls( camera, container );
+          controls = new THREE.OrbitControls( camera, container );
           controls.rotateSpeed = 2.0;
           controls.zoomSpeed = 1.2;
           controls.panSpeed = 0.8;
