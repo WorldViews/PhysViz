@@ -147,10 +147,14 @@ class TrackObj:
         times.sort()
         t1 = times[-1]
         tMax = t1
+        t = tMax
         #print "t1:",t1
-        for note in self.events[t1]:
-            t = t1 + note.dur
-            tMax = max(tMax, t)
+        for evt in self.events[t1]:
+            if isinstance(evt, Note):
+                print evt, evt.dur
+                if evt.dur:
+                    t = t1 + evt.dur
+                    tMax = max(tMax, t)
         self.tMax = tMax
         return t
 
@@ -169,13 +173,26 @@ class TrackObj:
             print "%5d %6.4f %3d -> %3d" % (t, s, note.velocity, v)
             note.setVelocity(v)
 
+    def scalePowerBySin(self):
+        t0 = self.getMinTime()
+        t1 = self.getMaxTime()
+        dur = t1-t0
+        print "t0:", t0, "  t1:", t1, "   dur:", dur
+        for note in self.allNotes():
+            t = note.t0
+            f = (t - t0)/float(dur)
+            s = math.sin(f*math.pi)
+            v = int(note.velocity * s)
+            print "%5d %6.4f %3d -> %3d" % (t, s, note.velocity, v)
+            note.setVelocity(v)
+
     def rescaleTime(self, s0=1, s1=2, maxTime=None):
         if maxTime == None:
             maxTime = self.getMaxTime()
         maxTime = int(maxTime)
         j = 0
         tmap = {}
-        for i in range(maxTime):
+        for i in range(maxTime+1):
             s = s0 + (s1-s0)*i/(maxTime-1.0)
             j += 1/s
             #print "%5d %7.2f %7.2f" % (i, s, j)
@@ -248,6 +265,9 @@ class TrackObj:
                         openNotes[pitch] = Note(ch, pitch, tn, v)
                     if v == 0:
                         note = openNotes[pitch]
+                        if note.dur == None:
+                            note.dur = tn - note.t0
+                            #print "added note.dur", note.dur
                         self.addNote(note)
                         del openNotes[pitch]
                 elif isinstance(evt, NoteOffEvent):
@@ -453,10 +473,11 @@ def playMelody_(name):
     print "result"
 
 def run():
+    dump("BluesRhythm1.mid")
+    return
     dump("shimauta1.mid")
     dump("minute_waltz.mid")
     dump("jukebox.mid")
-    dump("BluesRhythm1.mid")
     dump("beethovenSym5m1.mb64")
     dump("chopin69.mb64")
     dump("wtc0.mb64")

@@ -20,8 +20,8 @@ def genTrack():
         t.setMaxTime(t0 + 400)
     return t
 
-t = genTrack()
-#t = TrackObj("BluesRhythm1.json")
+#t = genTrack()
+t = TrackObj("BluesRhythm1.json")
 
 t.saveAsJSON("foo.json")
 print "t.maxTime", t.getMaxTime()
