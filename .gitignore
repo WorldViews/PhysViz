@@ -5,6 +5,8 @@
 *.pydevproject
 .project
 .metadata
+/images/
+/imagesPow2/
 bin/
 tmp/
 *.tmp
